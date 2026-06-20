@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Index — NTU Timetable Planner</title>
+<style>
+  :root{
+    --bg:#0E1217; --panel:#161C24; --panel2:#1C242E; --line:#28313D;
+    --ink:#E8EEF4; --mut:#8A97A6; --mut2:#5E6B79;
+    --accent:#4F9CF9; --good:#36D399; --warn:#F4A93C; --bad:#FF5D6C;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --r:12px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:14px;line-height:1.45;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#2C3744;border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ---------- Layout ---------- */
+  .app{display:flex;flex-direction:column;height:100dvh}
+  header{
+    display:flex;align-items:center;gap:14px;padding:10px 16px;
+    border-bottom:1px solid var(--line);background:var(--panel);flex:none;
+    padding-top:max(10px,env(safe-area-inset-top));
+  }
+  .brand{display:flex;align-items:baseline;gap:9px}
+  .brand .mark{
+    font-family:var(--mono);font-weight:700;font-size:18px;letter-spacing:-.5px;
+    color:var(--bg);background:var(--accent);padding:3px 9px;border-radius:7px;
+  }
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.2px}
+  .brand .sub{font-size:11px;color:var(--mut);font-family:var(--mono)}
+  .hspacer{flex:1}
+  .stat{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+  .stat b{font-family:var(--mono);font-size:15px}
+  .stat span{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
+  .pill{
+    font-family:var(--mono);font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  }
+  .pill.ok{background:rgba(54,211,153,.14);color:var(--good)}
+  .pill.bad{background:rgba(255,93,108,.15);color:var(--bad)}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .btn{
+    background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+    padding:8px 13px;font-size:13px;font-weight:500;color:var(--ink);
+    display:inline-flex;align-items:center;gap:7px;transition:.12s;white-space:nowrap;
+  }
+  .btn:hover{border-color:#3B4854;background:#222C37}
+  .btn.primary{background:var(--accent);color:#06101D;border-color:transparent;font-weight:600}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn svg{width:15px;height:15px}
+  .icon-btn{padding:8px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)}
+
+  main{flex:1;display:flex;min-height:0}
+  .sidebar{
+    width:380px;flex:none;border-right:1px solid var(--line);background:var(--panel);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .grid-wrap{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+
+  /* ---------- Sidebar ---------- */
+  .side-tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+  .side-tabs button{
+    flex:1;padding:12px 0;font-size:12.5px;font-weight:600;color:var(--mut);
+    border-bottom:2px solid transparent;letter-spacing:.3px;
+  }
+  .side-tabs button.active{color:var(--ink);border-bottom-color:var(--accent)}
+  .side-tabs .count{font-family:var(--mono);font-size:11px;color:var(--mut2);margin-left:5px}
+  .side-body{flex:1;overflow-y:auto;padding:12px;min-height:0}
+
+  .search{
+    width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+    padding:9px 12px;color:var(--ink);font-size:13px;font-family:inherit;margin-bottom:10px;
+  }
+  .search::placeholder{color:var(--mut2)}
+
+  .course-card{
+    border:1px solid var(--line);border-radius:var(--r);margin-bottom:9px;overflow:hidden;
+    background:var(--panel2);
+  }
+  .course-head{display:flex;align-items:center;gap:10px;padding:11px 12px}
+  .swatch{width:9px;align-self:stretch;border-radius:3px;flex:none}
+  .course-meta{flex:1;min-width:0}
+  .course-code{font-family:var(--mono);font-weight:700;font-size:13.5px;letter-spacing:.3px}
+  .course-title{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .course-add{
+    font-size:18px;width:30px;height:30px;border-radius:8px;flex:none;
+    background:var(--panel);border:1px solid var(--line);color:var(--mut);
+    display:grid;place-items:center;
+  }
+  .course-add:hover{color:var(--accent);border-color:var(--accent)}
+  .tag{font-family:var(--mono);font-size:10px;color:var(--mut2);padding:2px 6px;border:1px solid var(--line);border-radius:5px}
+  .exam-tag{color:var(--warn);border-color:rgba(244,169,60,.3)}
+  .cat-Core{color:var(--accent);border-color:rgba(79,156,249,.4);background:rgba(79,156,249,.1)}
+  .cat-MPE{color:var(--good);border-color:rgba(54,211,153,.4);background:rgba(54,211,153,.1)}
+  .cat-Other{color:var(--mut);border-color:var(--line)}
+  .filter-row{display:flex;gap:6px;margin-bottom:10px}
+  .fpill{flex:1;padding:7px 0;font-size:11.5px;font-weight:600;color:var(--mut);
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:5px}
+  .fpill.active{color:var(--ink);border-color:var(--accent);background:rgba(79,156,249,.1)}
+  .fcount{font-family:var(--mono);font-size:9.5px;color:var(--mut2)}
+  .catsel{margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    color:var(--mut);font-size:10.5px;font-family:var(--mono);padding:2px 4px;max-width:120px}
+
+  /* Plan course (selected) */
+  .plan-card .course-head{cursor:pointer}
+  .chosen-row{display:flex;align-items:center;gap:8px;padding:0 12px 11px 31px;flex-wrap:wrap}
+  .chosen-idx{font-family:var(--mono);font-size:12px;font-weight:600;padding:4px 9px;border-radius:7px;
+    background:var(--panel);border:1px solid var(--line)}
+  .chosen-idx.unset{color:var(--mut2)}
+  .mini{font-size:11px;color:var(--mut)}
+  .lockbtn{margin-left:auto;font-size:11px;color:var(--mut);display:inline-flex;align-items:center;gap:4px;
+    padding:4px 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel)}
+  .lockbtn.on{color:var(--warn);border-color:rgba(244,169,60,.35);background:rgba(244,169,60,.08)}
+  .lockbtn svg{width:12px;height:12px}
+
+  .idx-list{border-top:1px solid var(--line);max-height:340px;overflow-y:auto;background:var(--panel)}
+  .idx-opt{display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
+  .idx-opt:last-child{border-bottom:none}
+  .idx-opt:hover{background:var(--panel2)}
+  .idx-opt.sel{background:rgba(79,156,249,.1)}
+  .idx-status{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none}
+  .idx-status.free{background:var(--good)}
+  .idx-status.clash{background:var(--bad)}
+  .idx-num{font-family:var(--mono);font-weight:600;font-size:12.5px;flex:none;width:48px}
+  .idx-sess{flex:1;font-size:11px;color:var(--mut);line-height:1.5}
+  .idx-sess b{color:var(--ink);font-weight:600}
+  .idx-clashwith{color:var(--bad);font-size:10.5px}
+
+  .empty{text-align:center;color:var(--mut2);padding:40px 20px;font-size:13px}
+  .empty svg{width:34px;height:34px;opacity:.4;margin-bottom:10px}
+
+  /* ---------- Grid ---------- */
+  .grid-toolbar{
+    display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);
+    flex:none;overflow-x:auto;background:var(--panel)
+  }
+  .grid-toolbar .lbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;flex:none}
+  .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:2px;flex:none}
+  .seg button{padding:6px 11px;font-size:12px;border-radius:7px;color:var(--mut);font-weight:500;white-space:nowrap}
+  .seg button.active{background:var(--accent);color:#06101D;font-weight:600}
+
+  .gridscroll{flex:1;overflow:auto;min-height:0;padding:0 14px 14px}
+  .timetable{position:relative;min-width:560px}
+  .tt-head{display:grid;grid-template-columns:48px repeat(5,1fr);position:sticky;top:0;z-index:5;background:var(--bg);padding-top:10px}
+  .tt-head .day{text-align:center;font-size:12px;font-weight:600;color:var(--mut);padding-bottom:8px}
+  .tt-head .day b{display:block;color:var(--ink);font-size:13px}
+  .dayhrs{display:inline-block;margin-top:3px;font-family:var(--mono);font-size:10.5px;font-weight:600;
+    color:var(--mut);padding:1px 7px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+  .dayhrs.free{color:var(--good);border-color:rgba(54,211,153,.35);background:rgba(54,211,153,.1)}
+  .dayhrs.free.lec{color:var(--warn);border-color:rgba(244,169,60,.35);background:rgba(244,169,60,.1)}
+  .lectoggle{flex:none;font-size:12px;font-weight:600;color:var(--mut);padding:7px 12px;border-radius:9px;
+    background:var(--panel2);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .lectoggle .ck{font-size:11px;opacity:0;transition:.1s}
+  .lectoggle.on{color:var(--accent);border-color:var(--accent);background:rgba(79,156,249,.1)}
+  .lectoggle.on .ck{opacity:1}
+  .wkhrs{flex:none;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);
+    padding:7px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+  .tt-body{display:grid;grid-template-columns:48px repeat(5,1fr);position:relative}
+  .axis{position:relative}
+  .axis .hr{height:56px;position:relative;border-top:1px solid var(--line)}
+  .axis .hr span{position:absolute;top:-8px;right:7px;font-family:var(--mono);font-size:10px;color:var(--mut2)}
+  .daycol{position:relative;border-left:1px solid var(--line)}
+  .daycol .hr{height:56px;border-top:1px solid var(--line)}
+  .daycol.today{background:rgba(79,156,249,.03)}
+
+  .block{
+    position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;overflow:hidden;
+    border:1px solid rgba(255,255,255,.12);cursor:default;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);transition:.1s;
+  }
+  .block:hover{filter:brightness(1.08);z-index:4}
+  .block .bk-code{font-family:var(--mono);font-weight:700;font-size:11.5px;line-height:1.2}
+  .block .bk-type{font-size:10px;opacity:.85;font-weight:600}
+  .block .bk-meta{font-size:9.5px;opacity:.7;font-family:var(--mono);margin-top:1px}
+  .block .bk-wk{position:absolute;top:3px;right:4px;font-size:8px;font-weight:700;
+    padding:1px 4px;border-radius:4px;background:rgba(0,0,0,.28);letter-spacing:.3px}
+  .block.clash{border:1.5px solid var(--bad);box-shadow:0 0 0 1.5px var(--bad),0 1px 6px rgba(255,93,108,.4)}
+  .block.clash::after{content:"";position:absolute;inset:0;background:
+    repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,93,108,.16) 5px,rgba(255,93,108,.16) 10px);pointer-events:none}
+
+  .clash-banner{
+    margin:0 14px 0;padding:0;flex:none;
+  }
+  .clash-banner .inner{
+    background:rgba(255,93,108,.1);border:1px solid rgba(255,93,108,.3);border-radius:10px;
+    padding:10px 13px;margin-top:10px;font-size:12.5px;
+  }
+  .clash-banner b{color:var(--bad)}
+  .clash-banner ul{margin:6px 0 0;padding-left:18px;color:var(--mut)}
+  .clash-banner li{margin:2px 0}
+
+  /* ---------- Modal ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(6,9,13,.7);backdrop-filter:blur(3px);z-index:50;
+    display:none;align-items:center;justify-content:center;padding:18px}
+  .scrim.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:560px;width:100%;
+    max-height:86dvh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .modal-head{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .modal-head h2{margin:0;font-size:16px}
+  .modal-head .x{margin-left:auto;font-size:20px;color:var(--mut);width:32px;height:32px;border-radius:8px}
+  .modal-head .x:hover{background:var(--panel2);color:var(--ink)}
+  .modal-body{padding:18px;overflow-y:auto}
+  .modal-body p{color:var(--mut);font-size:13px;margin:0 0 12px}
+  textarea{width:100%;min-height:150px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:12px;color:var(--ink);font-family:var(--mono);font-size:12px;resize:vertical}
+  .file-row{display:flex;gap:10px;align-items:center;margin:12px 0;flex-wrap:wrap}
+  .hint{font-size:11.5px;color:var(--mut2);margin-top:6px}
+
+  .sol-card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;background:var(--panel2)}
+  .sol-card .sol-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .sol-badge{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent);
+    background:rgba(79,156,249,.12);padding:3px 8px;border-radius:6px}
+  .sol-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--mut)}
+  .sol-stats b{color:var(--ink);font-family:var(--mono)}
+  .sol-idx{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
+  .sol-idx span{font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--line)}
+
+  /* ---------- Mobile / iPad ---------- */
+  .mtoggle{display:none}
+  @media (max-width:860px){
+    .sidebar{position:fixed;z-index:30;top:0;bottom:0;left:0;width:min(88vw,400px);
+      transform:translateX(-100%);transition:transform .22s ease;box-shadow:8px 0 40px rgba(0,0,0,.5)}
+    .sidebar.open{transform:translateX(0)}
+    .mtoggle{display:inline-flex}
+    .sidebar-scrim{position:fixed;inset:0;background:rgba(6,9,13,.55);z-index:25;display:none}
+    .sidebar-scrim.open{display:block}
+    .brand h1{display:none}
+    .brand .sub{display:none}
+  }
+  @media (max-width:520px){
+    header{gap:9px;padding:8px 11px;padding-top:max(8px,env(safe-area-inset-top))}
+    .stat{display:none}
+    .timetable{min-width:480px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <button class="icon-btn mtoggle" id="mtoggle" aria-label="Courses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="brand">
+      <span class="mark">IDX</span>
+      <div>
+        <h1>Timetable Planner</h1>
+        <div class="sub">NTU · AY2026 Sem 1</div>
+      </div>
+    </div>
+    <div class="hspacer"></div>
+    <div class="stat"><b id="auTotal">0</b><span>Units</span></div>
+    <div class="pill ok" id="clashPill"><span class="dot"></span><span id="clashTxt">No clashes</span></div>
+    <button class="btn" id="importBtn" title="Import courses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <span class="lbltext">Import</span>
+    </button>
+    <button class="btn primary" id="optBtn" title="Find clash-free options">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-12.14l2.83 2.83m4.48 4.48l2.83 2.83"/></svg>
+      <span class="lbltext">Optimize</span>
+    </button>
+  </header>
+
+  <main>
+    <div class="sidebar-scrim" id="sideScrim"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="side-tabs">
+        <button id="tabPlan" class="active">My Plan <span class="count" id="planCount">0</span></button>
+        <button id="tabCatalog">Catalog <span class="count" id="catCount">0</span></button>
+      </div>
+      <div class="side-body" id="sideBody"></div>
+    </aside>
+
+    <section class="grid-wrap">
+      <div class="grid-toolbar">
+        <span class="lbl">Optimize&nbsp;for</span>
+        <div class="seg" id="objSeg">
+          <button data-obj="valid" class="active">Any valid</button>
+          <button data-obj="days">Fewest days</button>
+          <button data-obj="compact">Compact</button>
+          <button data-obj="latestart">Late starts</button>
+          <button data-obj="early">Early finish</button>
+        </div>
+        <div class="hspacer" style="flex:1"></div>
+        <button class="lectoggle on" id="lecToggle" title="When on, lecture-only days count as free and lectures are excluded from the hour totals">
+          <span class="ck">✓</span> Ignore lectures
+        </button>
+        <span class="wkhrs" id="wkHrs" title="Total non-lecture contact hours per week">0h/wk</span>
+        <button class="btn" id="exportBtn" title="Save plan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          <span class="lbltext">Save</span>
+        </button>
+      </div>
+      <div class="clash-banner" id="clashBanner"></div>
+      <div class="gridscroll">
+        <div class="timetable">
+          <div class="tt-head" id="ttHead"></div>
+          <div class="tt-body" id="ttBody"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Import modal -->
+<div class="scrim" id="importScrim">
+  <div class="modal">
+    <div class="modal-head"><h2>Import courses</h2><button class="x" id="importClose">×</button></div>
+    <div class="modal-body">
+      <p>Upload the “Content of Course” PDF(s) from NTU STARS Planner, or paste the page text. Each import adds to your catalog.</p>
+      <div class="file-row">
+        <label class="btn primary" for="pdfFile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          Choose PDF or HTML files</label>
+        <input id="pdfFile" type="file" accept="application/pdf,text/html,.html,.htm" multiple style="display:none">
+        <span class="mini" id="pdfStatus"></span>
+      </div>
+      <div class="file-row">
+        <label class="mini" style="color:var(--mut)">Tag these as</label>
+        <div class="seg" id="impCatSeg" style="border-radius:9px">
+          <button data-cat="Core" class="active">Core</button>
+          <button data-cat="MPE">MPE</button>
+          <button data-cat="Other">Other</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:0">Select every course file from your <b>core/</b> folder with “Core” chosen, then repeat for <b>mpe/</b>. You can pick many files at once.</div>
+      <p style="margin:16px 0 6px">…or paste page text:</p>
+      <textarea id="pasteArea" placeholder="Paste the Content of Course text here, e.g.
+[+] SC2103 ...  3 AU ...
+Index Type Group Day Time Venue Remark
+10500 Lec/Studio LE1 Mon 0830to1020 LT1 ..."></textarea>
+      <div class="file-row">
+        <button class="btn primary" id="parsePaste">Add pasted course</button>
+        <span class="mini" id="pasteStatus"></span>
+      </div>
+      <div class="hint">HTML and pasted text parse offline. PDF reading loads a small library from the web once.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Optimize modal -->
+<div class="scrim" id="optScrim">
+  <div class="modal">
+    <div class="modal-head"><h2 id="optTitle">Clash-free options</h2><button class="x" id="optClose">×</button></div>
+    <div class="modal-body" id="optBody"></div>
+  </div>
+</div>
+
+<script id="course-data" type="application/json">[{"code":"CC0007","title":"SCIENCE & TECHNOLOGY FOR HUMANITY","au":3,"exam":null,"idx":[{"i":"84501","s":[{"t":"Tut","g":"T001","d":0,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84502","s":[{"t":"Tut","g":"T002","d":0,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84503","s":[{"t":"Tut","g":"T003","d":0,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84504","s":[{"t":"Tut","g":"T004","d":0,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84505","s":[{"t":"Tut","g":"T005","d":0,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84506","s":[{"t":"Tut","g":"T006","d":0,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84507","s":[{"t":"Tut","g":"T007","d":0,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84508","s":[{"t":"Tut","g":"T008","d":0,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84509","s":[{"t":"Tut","g":"T009","d":0,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84510","s":[{"t":"Tut","g":"T010","d":0,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84511","s":[{"t":"Tut","g":"T011","d":0,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84512","s":[{"t":"Tut","g":"T012","d":0,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84513","s":[{"t":"Tut","g":"T013","d":0,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84514","s":[{"t":"Tut","g":"T014","d":0,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84515","s":[{"t":"Tut","g":"T015","d":0,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84516","s":[{"t":"Tut","g":"T016","d":0,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84517","s":[{"t":"Tut","g":"T017","d":0,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84518","s":[{"t":"Tut","g":"T018","d":0,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84519","s":[{"t":"Tut","g":"T019","d":0,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84520","s":[{"t":"Tut","g":"T020","d":0,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84521","s":[{"t":"Tut","g":"T021","d":0,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84522","s":[{"t":"Tut","g":"T022","d":0,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84523","s":[{"t":"Tut","g":"T023","d":0,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84524","s":[{"t":"Tut","g":"T024","d":0,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84525","s":[{"t":"Tut","g":"T025","d":1,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84526","s":[{"t":"Tut","g":"T026","d":1,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84527","s":[{"t":"Tut","g":"T027","d":1,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84528","s":[{"t":"Tut","g":"T028","d":1,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84529","s":[{"t":"Tut","g":"T029","d":1,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84530","s":[{"t":"Tut","g":"T030","d":1,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84531","s":[{"t":"Tut","g":"T031","d":1,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84532","s":[{"t":"Tut","g":"T032","d":1,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84533","s":[{"t":"Tut","g":"T033","d":1,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84534","s":[{"t":"Tut","g":"T034","d":1,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84535","s":[{"t":"Tut","g":"T035","d":1,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84536","s":[{"t":"Tut","g":"T036","d":1,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84537","s":[{"t":"Tut","g":"T037","d":1,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84538","s":[{"t":"Tut","g":"T038","d":1,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84539","s":[{"t":"Tut","g":"T039","d":1,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84540","s":[{"t":"Tut","g":"T040","d":1,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84541","s":[{"t":"Tut","g":"T041","d":1,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84542","s":[{"t":"Tut","g":"T042","d":1,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84543","s":[{"t":"Tut","g":"T043","d":1,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84544","s":[{"t":"Tut","g":"T044","d":1,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84545","s":[{"t":"Tut","g":"T045","d":1,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84546","s":[{"t":"Tut","g":"T046","d":1,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84547","s":[{"t":"Tut","g":"T047","d":1,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84548","s":[{"t":"Tut","g":"T048","d":1,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84549","s":[{"t":"Tut","g":"T049","d":2,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84550","s":[{"t":"Tut","g":"T050","d":2,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84551","s":[{"t":"Tut","g":"T051","d":2,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84552","s":[{"t":"Tut","g":"T052","d":2,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84553","s":[{"t":"Tut","g":"T053","d":2,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84554","s":[{"t":"Tut","g":"T054","d":2,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84555","s":[{"t":"Tut","g":"T055","d":2,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84556","s":[{"t":"Tut","g":"T056","d":2,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84557","s":[{"t":"Tut","g":"T057","d":2,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84558","s":[{"t":"Tut","g":"T058","d":2,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84559","s":[{"t":"Tut","g":"T059","d":2,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84560","s":[{"t":"Tut","g":"T060","d":2,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84561","s":[{"t":"Tut","g":"T061","d":2,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84562","s":[{"t":"Tut","g":"T062","d":2,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84563","s":[{"t":"Tut","g":"T063","d":2,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84564","s":[{"t":"Tut","g":"T064","d":2,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84565","s":[{"t":"Tut","g":"T065","d":2,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84566","s":[{"t":"Tut","g":"T066","d":2,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84567","s":[{"t":"Tut","g":"T067","d":2,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84568","s":[{"t":"Tut","g":"T068","d":2,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84569","s":[{"t":"Tut","g":"T069","d":2,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84570","s":[{"t":"Tut","g":"T070","d":2,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84571","s":[{"t":"Tut","g":"T071","d":2,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84572","s":[{"t":"Tut","g":"T072","d":2,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84573","s":[{"t":"Tut","g":"T073","d":3,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84574","s":[{"t":"Tut","g":"T074","d":3,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84575","s":[{"t":"Tut","g":"T075","d":3,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84576","s":[{"t":"Tut","g":"T076","d":3,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84577","s":[{"t":"Tut","g":"T077","d":3,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84578","s":[{"t":"Tut","g":"T078","d":3,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84579","s":[{"t":"Tut","g":"T079","d":3,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84580","s":[{"t":"Tut","g":"T080","d":3,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84581","s":[{"t":"Tut","g":"T081","d":3,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84582","s":[{"t":"Tut","g":"T082","d":3,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84583","s":[{"t":"Tut","g":"T083","d":3,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84584","s":[{"t":"Tut","g":"T084","d":3,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84585","s":[{"t":"Tut","g":"T085","d":3,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84586","s":[{"t":"Tut","g":"T086","d":3,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84587","s":[{"t":"Tut","g":"T087","d":3,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84588","s":[{"t":"Tut","g":"T088","d":3,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84589","s":[{"t":"Tut","g":"T089","d":3,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84590","s":[{"t":"Tut","g":"T090","d":3,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84591","s":[{"t":"Tut","g":"T091","d":3,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84592","s":[{"t":"Tut","g":"T092","d":3,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84593","s":[{"t":"Tut","g":"T093","d":3,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84594","s":[{"t":"Tut","g":"T094","d":3,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84595","s":[{"t":"Tut","g":"T095","d":3,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84596","s":[{"t":"Tut","g":"T096","d":3,"s":1050,"e":1160,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84597","s":[{"t":"Tut","g":"T097","d":4,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84598","s":[{"t":"Tut","g":"T098","d":4,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84599","s":[{"t":"Tut","g":"T099","d":4,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84600","s":[{"t":"Tut","g":"T100","d":4,"s":510,"e":620,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84601","s":[{"t":"Tut","g":"T101","d":4,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84602","s":[{"t":"Tut","g":"T102","d":4,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84603","s":[{"t":"Tut","g":"T103","d":4,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84604","s":[{"t":"Tut","g":"T104","d":4,"s":630,"e":740,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84605","s":[{"t":"Tut","g":"T105","d":4,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84606","s":[{"t":"Tut","g":"T106","d":4,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84607","s":[{"t":"Tut","g":"T107","d":4,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84608","s":[{"t":"Tut","g":"T108","d":4,"s":750,"e":860,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84609","s":[{"t":"Tut","g":"T109","d":4,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84610","s":[{"t":"Tut","g":"T110","d":4,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84611","s":[{"t":"Tut","g":"T111","d":4,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84612","s":[{"t":"Tut","g":"T112","d":4,"s":870,"e":980,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84613","s":[{"t":"Tut","g":"T113","d":4,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84614","s":[{"t":"Tut","g":"T114","d":4,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84615","s":[{"t":"Tut","g":"T115","d":4,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"84616","s":[{"t":"Tut","g":"T116","d":4,"s":990,"e":1100,"v":"COLLAB","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]}]}]},{"code":"SC2001","title":"ALGORITHM DESIGN & ANALYSIS","au":3,"exam":"23-Nov-2026 1300to1500 hrs","idx":[{"i":"10143","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEA","d":1,"s":990,"e":1040,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEA","d":0,"s":630,"e":740,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10144","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEB","d":4,"s":750,"e":800,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEB","d":0,"s":630,"e":740,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10145","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEC","d":0,"s":630,"e":680,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEC","d":3,"s":630,"e":740,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10146","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCED","d":0,"s":630,"e":680,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCED","d":3,"s":630,"e":740,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10147","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEE","d":0,"s":870,"e":920,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEE","d":2,"s":510,"e":620,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10148","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEF","d":0,"s":870,"e":920,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEF","d":2,"s":510,"e":620,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10149","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE1","d":2,"s":570,"e":620,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE1","d":3,"s":870,"e":980,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10150","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE2","d":2,"s":570,"e":620,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE2","d":3,"s":870,"e":980,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10151","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE3","d":3,"s":630,"e":680,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE3","d":1,"s":510,"e":620,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10152","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSA","d":0,"s":630,"e":680,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSA","d":1,"s":510,"e":620,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10153","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSB","d":1,"s":930,"e":980,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSB","d":1,"s":750,"e":860,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10154","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSC","d":3,"s":570,"e":620,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSC","d":2,"s":870,"e":980,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10155","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSD","d":3,"s":570,"e":620,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSD","d":2,"s":870,"e":980,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10156","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSE","d":4,"s":750,"e":800,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSE","d":1,"s":870,"e":980,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10157","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSF","d":4,"s":750,"e":800,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSF","d":0,"s":630,"e":740,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10158","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSG","d":2,"s":930,"e":980,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSG","d":1,"s":870,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10159","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSH","d":2,"s":930,"e":980,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSH","d":1,"s":870,"e":980,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10160","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSI","d":1,"s":810,"e":860,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSI","d":0,"s":630,"e":740,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10161","s":[{"t":"Lec/Studio","g":"LE1","d":0,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE1","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSJ","d":1,"s":810,"e":860,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSJ","d":0,"s":870,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10162","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSK","d":3,"s":690,"e":740,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSK","d":2,"s":750,"e":860,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10163","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSL","d":3,"s":690,"e":740,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSL","d":2,"s":750,"e":860,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10164","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS1","d":4,"s":930,"e":980,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS1","d":3,"s":870,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10165","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS2","d":1,"s":930,"e":980,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS2","d":3,"s":870,"e":980,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10166","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS3","d":4,"s":810,"e":860,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS3","d":1,"s":870,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10167","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS4","d":1,"s":870,"e":920,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS4","d":4,"s":750,"e":860,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10168","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMA","d":1,"s":990,"e":1040,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMA","d":0,"s":510,"e":620,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10169","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMB","d":1,"s":990,"e":1040,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMB","d":0,"s":510,"e":620,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10170","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMC","d":2,"s":870,"e":920,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMC","d":0,"s":870,"e":980,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10171","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMD","d":2,"s":870,"e":920,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMD","d":1,"s":750,"e":860,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10172","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAA","d":0,"s":870,"e":920,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAA","d":2,"s":750,"e":860,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10173","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAB","d":3,"s":930,"e":980,"v":"TRX44","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAB","d":4,"s":690,"e":800,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10174","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAC","d":0,"s":930,"e":980,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAC","d":2,"s":630,"e":740,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10175","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAD","d":0,"s":930,"e":980,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAD","d":2,"s":630,"e":740,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10176","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAE","d":3,"s":930,"e":980,"v":"LHN-TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAE","d":4,"s":690,"e":800,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10177","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAF","d":3,"s":810,"e":860,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAF","d":1,"s":870,"e":980,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10178","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SDAG","d":2,"s":750,"e":800,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SDAG","d":4,"s":690,"e":800,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10179","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SAIA","d":3,"s":750,"e":800,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SAIA","d":2,"s":630,"e":740,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10180","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS1","d":2,"s":750,"e":800,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS1","d":2,"s":870,"e":980,"v":"HWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10181","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS2","d":2,"s":750,"e":800,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS2","d":2,"s":630,"e":740,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10182","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF1","d":4,"s":990,"e":1040,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF1","d":3,"s":750,"e":860,"v":"HWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10183","s":[{"t":"Lec/Studio","g":"LE2","d":0,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"LE2","d":3,"s":990,"e":1040,"v":"LKC-LT","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF2","d":4,"s":990,"e":1040,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF2","d":3,"s":750,"e":860,"v":"HWLAB3","w":[2,4,6,8,10,12]}]}]},{"code":"SC2002","title":"OBJECT ORIENTED DESIGN & PROGRAMMING","au":3,"exam":null,"idx":[{"i":"10186","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEA","d":4,"s":810,"e":860,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEA","d":0,"s":630,"e":740,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10187","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEB","d":4,"s":810,"e":860,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEB","d":0,"s":630,"e":740,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10188","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEC","d":4,"s":630,"e":680,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEC","d":3,"s":630,"e":740,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10189","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCED","d":4,"s":630,"e":680,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCED","d":3,"s":630,"e":740,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10190","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEE","d":0,"s":690,"e":740,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEE","d":2,"s":510,"e":620,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10191","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEF","d":0,"s":690,"e":740,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEF","d":2,"s":510,"e":620,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10192","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE1","d":0,"s":630,"e":680,"v":"TR+20","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE1","d":3,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10193","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE2","d":0,"s":630,"e":680,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE2","d":3,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10194","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE3","d":0,"s":570,"e":620,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE3","d":1,"s":510,"e":620,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10195","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMA","d":2,"s":510,"e":560,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMA","d":4,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10196","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMB","d":2,"s":510,"e":560,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMB","d":4,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10197","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMC","d":2,"s":930,"e":980,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMC","d":0,"s":510,"e":620,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10198","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMD","d":2,"s":930,"e":980,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMD","d":0,"s":510,"e":620,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10199","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS1","d":3,"s":870,"e":920,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS1","d":2,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10200","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS2","d":3,"s":870,"e":920,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS2","d":2,"s":630,"e":740,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10201","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF1","d":2,"s":570,"e":620,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF1","d":3,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10202","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF2","d":2,"s":570,"e":620,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF2","d":3,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10203","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDA","d":0,"s":750,"e":800,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDA","d":2,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10204","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":870,"e":980,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDB","d":0,"s":750,"e":800,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDB","d":2,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]}]},{"code":"SC2005","title":"OPERATING SYSTEMS","au":3,"exam":null,"idx":[{"i":"10207","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSA","d":3,"s":570,"e":620,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSA","d":1,"s":870,"e":980,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10208","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSB","d":3,"s":570,"e":620,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSB","d":0,"s":630,"e":740,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10209","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSC","d":1,"s":750,"e":800,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSC","d":0,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10210","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSD","d":1,"s":750,"e":800,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSD","d":0,"s":870,"e":980,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10211","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSE","d":0,"s":930,"e":980,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSE","d":1,"s":870,"e":980,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10212","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSF","d":0,"s":930,"e":980,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSF","d":0,"s":630,"e":740,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10213","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSG","d":4,"s":750,"e":800,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSG","d":2,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10214","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSH","d":4,"s":750,"e":800,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSH","d":2,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10215","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSI","d":3,"s":870,"e":920,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSI","d":0,"s":630,"e":740,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10216","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSJ","d":0,"s":570,"e":620,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSJ","d":0,"s":870,"e":980,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10217","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSK","d":4,"s":870,"e":920,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSK","d":2,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10218","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSL","d":0,"s":570,"e":620,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSL","d":4,"s":750,"e":860,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10219","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS1","d":2,"s":870,"e":920,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS1","d":3,"s":870,"e":980,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10220","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS2","d":2,"s":870,"e":920,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS2","d":3,"s":870,"e":980,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10221","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS3","d":2,"s":750,"e":800,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS3","d":3,"s":630,"e":740,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10222","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS4","d":2,"s":750,"e":800,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS4","d":3,"s":630,"e":740,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10223","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMC","d":3,"s":870,"e":920,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMC","d":0,"s":510,"e":620,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10224","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCMD","d":3,"s":930,"e":980,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCMD","d":1,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10225","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TAIS1","d":4,"s":870,"e":920,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TAIS1","d":0,"s":750,"e":860,"v":"SPL","w":[2,4,6,8,10,12]}]},{"i":"10226","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS1","d":1,"s":570,"e":620,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS1","d":3,"s":510,"e":620,"v":"SPL","w":[1,3,5,7,9,11,13]}]},{"i":"10227","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"MACS2","d":1,"s":570,"e":620,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"MACS2","d":3,"s":510,"e":620,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10228","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDA","d":3,"s":930,"e":980,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDA","d":2,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10229","s":[{"t":"Lec/Studio","g":"SCL2","d":4,"s":690,"e":740,"v":"LT2A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":750,"e":800,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDB","d":3,"s":930,"e":980,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDB","d":3,"s":630,"e":740,"v":"SWLAB3","w":[2,4,6,8,10,12]}]}]},{"code":"SC2006","title":"SOFTWARE ENGINEERING","au":3,"exam":"24-Nov-2026 0900to1100 hrs","idx":[{"i":"10232","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEA","d":2,"s":870,"e":920,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEA","d":4,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10233","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEB","d":2,"s":870,"e":920,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEB","d":3,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10234","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEC","d":2,"s":570,"e":620,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEC","d":4,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10235","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCED","d":2,"s":570,"e":620,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCED","d":4,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10236","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEE","d":1,"s":990,"e":1040,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEE","d":1,"s":510,"e":620,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10237","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEF","d":1,"s":990,"e":1040,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEF","d":1,"s":510,"e":620,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10238","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE1","d":3,"s":570,"e":620,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE1","d":0,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10239","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE2","d":3,"s":570,"e":620,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE2","d":0,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10240","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE3","d":0,"s":930,"e":980,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE3","d":3,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10241","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSA","d":4,"s":750,"e":800,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSA","d":1,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10242","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSB","d":4,"s":750,"e":800,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSB","d":0,"s":630,"e":740,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10243","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSC","d":3,"s":870,"e":920,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSC","d":2,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10244","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSD","d":3,"s":870,"e":920,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSD","d":2,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10245","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSE","d":3,"s":690,"e":740,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSE","d":0,"s":630,"e":740,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10246","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSF","d":3,"s":690,"e":740,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSF","d":1,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10247","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSG","d":0,"s":570,"e":620,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSG","d":1,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10248","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSH","d":0,"s":570,"e":620,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSH","d":2,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10249","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSI","d":1,"s":750,"e":800,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSI","d":2,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10250","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSJ","d":3,"s":870,"e":920,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSJ","d":4,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10251","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSK","d":0,"s":930,"e":980,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSK","d":1,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10252","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSL","d":1,"s":810,"e":860,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSL","d":2,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10253","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS1","d":0,"s":690,"e":740,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS1","d":4,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10254","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS2","d":0,"s":690,"e":740,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS2","d":1,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10255","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS3","d":4,"s":870,"e":920,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS3","d":1,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10256","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS4","d":1,"s":930,"e":980,"v":"TR+18","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS4","d":4,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10257","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TAIS1","d":3,"s":630,"e":680,"v":"TR+21","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TAIS1","d":0,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10258","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TAIS2","d":3,"s":630,"e":680,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TAIS2","d":0,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10259","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDA","d":2,"s":750,"e":800,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDA","d":3,"s":630,"e":740,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10260","s":[{"t":"Lec/Studio","g":"SCL2","d":0,"s":510,"e":560,"v":"LT19A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lec/Studio","g":"SCL2","d":3,"s":810,"e":860,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDB","d":2,"s":750,"e":800,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDB","d":3,"s":630,"e":740,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]}]},{"code":"SC2008","title":"COMPUTER NETWORK","au":3,"exam":"25-Nov-2026 0900to1030 hrs","idx":[{"i":"10263","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEA","d":0,"s":990,"e":1040,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEA","d":4,"s":870,"e":980,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10264","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEB","d":0,"s":990,"e":1040,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEB","d":3,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10265","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEC","d":0,"s":570,"e":620,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEC","d":4,"s":870,"e":980,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10266","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCED","d":0,"s":570,"e":620,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCED","d":4,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10267","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEE","d":3,"s":870,"e":920,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEE","d":1,"s":510,"e":620,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10268","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEF","d":3,"s":870,"e":920,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEF","d":1,"s":510,"e":620,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10269","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE1","d":1,"s":990,"e":1040,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE1","d":0,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10270","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE2","d":1,"s":990,"e":1040,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE2","d":0,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10271","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE3","d":3,"s":570,"e":620,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE3","d":3,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10272","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSA","d":2,"s":810,"e":860,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSA","d":1,"s":510,"e":620,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10273","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSB","d":2,"s":810,"e":860,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSB","d":1,"s":750,"e":860,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10274","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSC","d":4,"s":750,"e":800,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSC","d":0,"s":870,"e":980,"v":"SWLAB3","w":[1,3,5,7,9,11,13]}]},{"i":"10275","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSD","d":4,"s":750,"e":800,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSD","d":0,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10276","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSE","d":4,"s":810,"e":860,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSE","d":0,"s":630,"e":740,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10277","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSF","d":4,"s":810,"e":860,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSF","d":1,"s":750,"e":860,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10278","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSG","d":3,"s":690,"e":740,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSG","d":2,"s":750,"e":860,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10279","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSH","d":3,"s":690,"e":740,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSH","d":1,"s":870,"e":980,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10280","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSI","d":4,"s":630,"e":680,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSI","d":2,"s":870,"e":980,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10281","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSJ","d":1,"s":750,"e":800,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSJ","d":4,"s":750,"e":860,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10282","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSK","d":0,"s":870,"e":920,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSK","d":1,"s":870,"e":980,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10283","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSL","d":1,"s":750,"e":800,"v":"TR+19","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCSL","d":4,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10284","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS1","d":2,"s":930,"e":980,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS1","d":4,"s":750,"e":860,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10285","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS2","d":2,"s":930,"e":980,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS2","d":1,"s":750,"e":860,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10286","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS3","d":0,"s":690,"e":740,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS3","d":3,"s":630,"e":740,"v":"HWLAB1","w":[1,3,5,7,9,11,13]}]},{"i":"10287","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS4","d":0,"s":690,"e":740,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCS4","d":3,"s":630,"e":740,"v":"HWLAB1","w":[2,4,6,8,10,12]}]},{"i":"10288","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDA","d":1,"s":1050,"e":1100,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDA","d":3,"s":630,"e":740,"v":"SWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10289","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDB","d":1,"s":1050,"e":1100,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDB","d":2,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]},{"i":"10290","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF1","d":4,"s":630,"e":680,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF1","d":2,"s":870,"e":980,"v":"SWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10291","s":[{"t":"Lec/Studio","g":"SCL2","d":1,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"BACF2","d":3,"s":570,"e":620,"v":"TR+23","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"BACF2","d":3,"s":870,"e":980,"v":"SWLAB3","w":[2,4,6,8,10,12]}]}]},{"code":"SC2107","title":"MICROPROCESSOR SYSTEM DESIGN & DEVELOPMENT","au":3,"exam":null,"idx":[{"i":"10297","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEA","d":0,"s":1050,"e":1100,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEA","d":3,"s":510,"e":680,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10298","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEB","d":0,"s":1050,"e":1100,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEB","d":3,"s":510,"e":680,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10299","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEC","d":1,"s":570,"e":620,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEC","d":2,"s":810,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10300","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCED","d":1,"s":570,"e":620,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCED","d":2,"s":810,"e":980,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10301","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEE","d":4,"s":630,"e":680,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEE","d":3,"s":510,"e":680,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10302","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCEF","d":4,"s":630,"e":680,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCEF","d":3,"s":510,"e":680,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10303","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE1","d":0,"s":570,"e":620,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE1","d":4,"s":810,"e":980,"v":"HWLAB2","w":[2,4,6,8,10,12]}]},{"i":"10304","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE2","d":0,"s":570,"e":620,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE2","d":4,"s":810,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10305","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCE3","d":0,"s":870,"e":920,"v":"TR+8","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"SCE3","d":2,"s":810,"e":980,"v":"HPL","w":[2,4,6,8,10,12]}]},{"i":"10306","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TCMA","d":0,"s":990,"e":1040,"v":"TR+7","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TCMA","d":4,"s":810,"e":980,"v":"HWLAB2","w":[1,3,5,7,9,11,13]}]},{"i":"10307","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT22","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TDDA","d":3,"s":990,"e":1040,"v":"TR+5","w":[2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Lab","g":"TDDA","d":0,"s":570,"e":740,"v":"HPL","w":[2,4,6,8,10,12]}]}]},{"code":"SC2203","title":"AUTOMATA, COMPUTABILITY & COMPLEXITY","au":3,"exam":"26-Nov-2026 0900to1100 hrs","idx":[{"i":"10310","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSA","d":3,"s":630,"e":680,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10311","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSB","d":3,"s":630,"e":680,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10312","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSC","d":4,"s":810,"e":860,"v":"LHN-TR+63","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10313","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSD","d":4,"s":810,"e":860,"v":"LHN-TR+64","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10314","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSE","d":0,"s":990,"e":1040,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10315","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSF","d":0,"s":990,"e":1040,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10316","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSG","d":1,"s":990,"e":1040,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10422","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSH","d":1,"s":990,"e":1040,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10423","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSI","d":0,"s":870,"e":920,"v":"TR+9","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10424","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSJ","d":0,"s":690,"e":740,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10425","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSK","d":0,"s":1050,"e":1100,"v":"TR+15","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10426","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCSL","d":0,"s":870,"e":920,"v":"TR+22","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10427","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS1","d":4,"s":990,"e":1040,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10428","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS2","d":1,"s":1050,"e":1100,"v":"TR+3","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10429","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS3","d":1,"s":1050,"e":1100,"v":"TR+4","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10430","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"SCS4","d":2,"s":810,"e":860,"v":"TR+17","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10431","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TCMC","d":0,"s":1050,"e":1100,"v":"TR+16","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]},{"i":"10432","s":[{"t":"Lec/Studio","g":"SCL2","d":2,"s":630,"e":740,"v":"LT1A","w":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"t":"Tut","g":"TCMD","d":2,"s":750,"e":800,"v":"TR+6","w":[2,3,4,5,6,7,8,9,10,11,12,13]}]}]}]</script>
+<script>
+"use strict";
+/* ============================ Data & State ============================ */
+const RAW = JSON.parse(document.getElementById('course-data').textContent);
+const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
+const DAYFULL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const PALETTE = ['#4F9CF9','#36D399','#F4A93C','#C77DFF','#FF7A8A','#7BD389','#F49B6A','#6AB7FF','#E0C46C','#9D8DF1','#5FD0D6','#F7A1C4'];
+const GRID_START = 480, GRID_END = 1230, PX_PER_MIN = 56/60; // 8:00–20:30
+
+// catalog keyed by code; mutable (imports add here)
+const catalog = new Map();
+RAW.forEach(c => catalog.set(c.code, normalize(c)));
+const colorOf = {};
+[...catalog.keys()].forEach((code,i)=> colorOf[code]=PALETTE[i%PALETTE.length]);
+function assignColor(code){ if(!colorOf[code]) colorOf[code]=PALETTE[Object.keys(colorOf).length%PALETTE.length]; return colorOf[code]; }
+
+function normalize(c){
+  return {
+    code:c.code, title:c.title, au:c.au, exam:c.exam,
+    category:c.category || guessCat(c.code),
+    indexes:c.idx.map(ix=>({ index:ix.i, sessions:ix.s.map(s=>({
+      type:s.t, group:s.g, day:s.d, start:s.s, end:s.e, venue:s.v, weeks:s.w
+    }))}))
+  };
+}
+// Best-effort default; user can override per course. CC/ICC codes lean Core.
+function guessCat(code){ return /^(CC|CN|ET|HW|ML|HE|HY|HZ)/.test(code) ? 'Core' : ''; }
+
+// plan: ordered list of {code, chosen:indexString|null, locked:bool, open:bool}
+let plan = [];
+let sideTab = 'plan';
+let objective = 'valid';
+let catSearch = '';
+let catFilter = 'all';
+let impCat = 'Core';
+let ignoreLec = true;   // treat lectures as optional: skip them in day-count & hours
+
+// A session "counts" toward your on-campus burden unless it's a lecture and we're ignoring lectures
+const isLec = s => s.type==='Lec/Studio';
+const counts = s => !ignoreLec || !isLec(s);
+
+/* ============================ Persistence ============================ */
+const STORE='ntu_idx_planner_v1';
+function save(){
+  try{
+    const imported = [...catalog.values()].filter(c=>c._imported).map(c=>c);
+    const cats={}; for(const c of catalog.values()) if(!c._imported && c.category) cats[c.code]=c.category;
+    localStorage.setItem(STORE, JSON.stringify({plan, imported, objective, cats, ignoreLec}));
+  }catch(e){/* sandbox: in-memory only */}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(STORE); if(!raw) return;
+    const d=JSON.parse(raw);
+    (d.imported||[]).forEach(c=>{ c._imported=true; catalog.set(c.code,c); assignColor(c.code); });
+    Object.entries(d.cats||{}).forEach(([code,cat])=>{ if(catalog.has(code)) catalog.get(code).category=cat; });
+    plan=(d.plan||[]).filter(p=>catalog.has(p.code));
+    objective=d.objective||'valid';
+    if(typeof d.ignoreLec==='boolean') ignoreLec=d.ignoreLec;
+  }catch(e){}
+}
+
+/* ============================ Clash logic ============================ */
+function weeksIntersect(a,b){ const S=new Set(a); for(const w of b) if(S.has(w)) return true; return false; }
+function sessClash(x,y){
+  return x.day===y.day && x.start<y.end && y.start<x.end && weeksIntersect(x.weeks,y.weeks);
+}
+function getIndex(code,idxStr){
+  const c=catalog.get(code); if(!c) return null;
+  return c.indexes.find(i=>i.index===idxStr)||null;
+}
+// sessions currently placed by everyone EXCEPT `exceptCode`
+function placedSessions(exceptCode){
+  const out=[];
+  for(const p of plan){
+    if(p.code===exceptCode || !p.chosen) continue;
+    const ix=getIndex(p.code,p.chosen); if(!ix) continue;
+    for(const s of ix.sessions) out.push({...s, code:p.code, idx:p.chosen});
+  }
+  return out;
+}
+// does a candidate index clash with others? returns list of clashing course codes
+function indexClashCodes(code, ix, others){
+  const codes=new Set();
+  for(const s of ix.sessions) for(const o of others) if(sessClash(s,o)) codes.add(o.code);
+  return [...codes];
+}
+// full current clash report
+function clashReport(){
+  const all=[];
+  for(const p of plan){ if(!p.chosen) continue; const ix=getIndex(p.code,p.chosen); if(!ix) continue;
+    for(const s of ix.sessions) all.push({...s,code:p.code,idx:p.chosen}); }
+  const conflicts=[];
+  for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++){
+    if(all[i].code!==all[j].code && sessClash(all[i],all[j]))
+      conflicts.push([all[i],all[j]]);
+  }
+  return conflicts;
+}
+
+/* ============================ Optimizer ============================ */
+function candidatesFor(p){
+  const c=catalog.get(p.code);
+  if(p.locked && p.chosen){ const ix=getIndex(p.code,p.chosen); return ix?[ix]:c.indexes; }
+  return c.indexes;
+}
+function solve(maxSolutions){
+  const active=plan.filter(p=>p.code); if(!active.length) return [];
+  const cols=active.map(p=>({code:p.code, cands:candidatesFor(p)}));
+  cols.sort((a,b)=>a.cands.length-b.cands.length); // tightest first
+  const sols=[]; let nodes=0; const NODE_CAP=400000;
+  const acc=[]; const pick=[];
+  function bt(i){
+    if(sols.length>=maxSolutions || nodes>NODE_CAP) return;
+    if(i===cols.length){ const m={}; pick.forEach((ix,k)=>m[cols[k].code]=ix.index); sols.push(m); return; }
+    for(const ix of cols[i].cands){
+      nodes++;
+      if(nodes>NODE_CAP) return;
+      let ok=true;
+      for(const s of ix.sessions){ for(const a of acc){ if(sessClash(s,a)){ok=false;break;} } if(!ok)break; }
+      if(!ok) continue;
+      const added=ix.sessions.map(s=>({...s,code:cols[i].code}));
+      added.forEach(s=>acc.push(s)); pick.push(ix);
+      bt(i+1);
+      added.forEach(()=>acc.pop()); pick.pop();
+      if(sols.length>=maxSolutions||nodes>NODE_CAP) return;
+    }
+  }
+  bt(0);
+  return sols;
+}
+function solStats(m){
+  const ss=[]; for(const code in m){ const ix=getIndex(code,m[code]); if(ix) ss.push(...ix.sessions); }
+  const byDay={};
+  ss.forEach(s=>{ (byDay[s.day]=byDay[s.day]||[]).push(s); });
+  // A day only "counts" if it has at least one non-lecture session (when ignoreLec is on).
+  let days=0;
+  for(const d in byDay){ if(byDay[d].some(counts)) days++; }
+  // Gaps / first / last are measured over counted sessions, so lecture-only days don't add load.
+  let gap=0, earliest=1e9, latest=0, contact=0;
+  for(const d in byDay){
+    const arr=byDay[d].filter(counts).sort((a,b)=>a.start-b.start);
+    if(!arr.length) continue;
+    let lastEnd=arr[0].start; earliest=Math.min(earliest,arr[0].start);
+    for(const s of arr){ contact+=s.end-s.start; if(s.start>lastEnd) gap+=s.start-lastEnd; lastEnd=Math.max(lastEnd,s.end); latest=Math.max(latest,s.end); }
+  }
+  if(earliest===1e9) earliest=0;
+  return {days, gap, earliest, latest, contact};
+}
+function scoreSol(m){
+  const st=solStats(m);
+  switch(objective){
+    case 'days': return st.days*10000 + st.gap;
+    case 'compact': return st.gap*100 + st.days*50;
+    case 'latestart': return (1440-st.earliest)*10 + st.gap; // higher earliest = better
+    case 'early': return st.latest*10 + st.gap;
+    default: return st.gap + st.days*30;
+  }
+}
+function fmtMin(m){ const h=Math.floor(m/60),mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+
+/* ============================ Rendering ============================ */
+const $=id=>document.getElementById(id);
+function weekLabel(w){
+  if(w.length>=13) return null;
+  const odd=[1,3,5,7,9,11,13], even=[2,4,6,8,10,12];
+  const eq=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+  if(eq(w,odd)) return 'ODD';
+  if(eq(w,even)) return 'EVEN';
+  if(w[0]===2&&w[w.length-1]===13&&w.length===12) return 'W2–13';
+  return 'W'+w[0]+'+';
+}
+function sessAbbr(t){ return t==='Lec/Studio'?'LEC':t==='Tut'?'TUT':t==='Lab'?'LAB':t.slice(0,3).toUpperCase(); }
+
+function renderHeaderStats(){
+  const au=plan.reduce((s,p)=>s+(catalog.get(p.code)?.au||0),0);
+  $('auTotal').textContent=au;
+  const conf=clashReport();
+  const pill=$('clashPill');
+  if(conf.length===0){ pill.className='pill ok'; $('clashTxt').textContent='No clashes'; }
+  else{ pill.className='pill bad'; $('clashTxt').textContent=conf.length+' clash'+(conf.length>1?'es':''); }
+  $('planCount').textContent=plan.length;
+  $('catCount').textContent=catalog.size;
+}
+
+function renderClashBanner(){
+  const conf=clashReport(); const el=$('clashBanner');
+  if(!conf.length){ el.innerHTML=''; return; }
+  const seen=new Set(); const items=[];
+  conf.forEach(([a,b])=>{
+    const key=[a.code,b.code,a.day,a.start].join('|');
+    if(seen.has(key))return; seen.add(key);
+    items.push(`<li><b>${a.code}</b> ${sessAbbr(a.type)} & <b>${b.code}</b> ${sessAbbr(b.type)} — ${DAYS[a.day]} ${fmtMin(Math.max(a.start,b.start))}</li>`);
+  });
+  el.innerHTML=`<div class="inner"><b>${conf.length} clash${conf.length>1?'es':''} found.</b> Pick a different index, or hit Optimize.<ul>${items.join('')}</ul></div>`;
+}
+
+function renderSidebar(){
+  $('tabPlan').classList.toggle('active',sideTab==='plan');
+  $('tabCatalog').classList.toggle('active',sideTab==='catalog');
+  const body=$('sideBody');
+  body.innerHTML = sideTab==='plan' ? planHTML() : catalogHTML();
+  wireSidebar();
+}
+
+function planHTML(){
+  if(!plan.length) return emptyState('plus','No courses yet','Switch to Catalog and tap + to add courses to your plan.');
+  return plan.map(p=>{
+    const c=catalog.get(p.code); const col=colorOf[p.code];
+    const others=placedSessions(p.code);
+    const chosen=p.chosen?getIndex(p.code,p.chosen):null;
+    let chosenSummary='';
+    if(chosen){
+      const clashCodes=indexClashCodes(p.code,chosen,others);
+      chosenSummary = `<span class="chosen-idx">${p.chosen}</span>` +
+        chosen.sessions.map(s=>`<span class="mini">${sessAbbr(s.type)} ${DAYS[s.day]} ${fmtMin(s.start)}</span>`).join('') +
+        (clashCodes.length?`<span class="idx-clashwith">⚠ clashes ${clashCodes.join(', ')}</span>`:'');
+    } else {
+      chosenSummary = `<span class="chosen-idx unset">no index</span>`;
+    }
+    const opts = p.open ? `<div class="idx-list">${c.indexes.map(ix=>{
+      const clashCodes=indexClashCodes(p.code,ix,others);
+      const free=clashCodes.length===0;
+      const sel=ix.index===p.chosen;
+      return `<div class="idx-opt ${sel?'sel':''}" data-pick="${p.code}|${ix.index}">
+        <span class="idx-status ${free?'free':'clash'}"></span>
+        <span class="idx-num">${ix.index}</span>
+        <span class="idx-sess">${ix.sessions.map(s=>`<div><b>${sessAbbr(s.type)}</b> ${DAYS[s.day]} ${fmtMin(s.start)}–${fmtMin(s.end)} · ${s.venue}${weekLabel(s.weeks)?' · '+weekLabel(s.weeks):''}</div>`).join('')}
+        ${!free?`<div class="idx-clashwith">clashes with ${clashCodes.join(', ')}</div>`:''}</span>
+      </div>`;
+    }).join('')}</div>` : '';
+    return `<div class="course-card plan-card" data-code="${p.code}">
+      <div class="course-head" data-toggle="${p.code}">
+        <div class="swatch" style="background:${col}"></div>
+        <div class="course-meta">
+          <div class="course-code">${p.code}</div>
+          <div class="course-title">${c.title}</div>
+        </div>
+        <button class="course-add" data-remove="${p.code}" title="Remove">−</button>
+      </div>
+      <div class="chosen-row">
+        ${chosenSummary}
+        <button class="lockbtn ${p.locked?'on':''}" data-lock="${p.code}" title="Lock index when optimizing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+          ${p.locked?'Locked':'Lock'}
+        </button>
+      </div>
+      ${opts}
+    </div>`;
+  }).join('');
+}
+
+function catalogHTML(){
+  const q=catSearch.toLowerCase();
+  let list=[...catalog.values()].filter(c=> !q || c.code.toLowerCase().includes(q)||c.title.toLowerCase().includes(q));
+  if(catFilter!=='all') list=list.filter(c=>(c.category||'Other')===catFilter);
+  const cnt=cat=> cat==='all'?catalog.size:[...catalog.values()].filter(c=>(c.category||'Other')===cat).length;
+  const pill=(val,lbl)=>`<button class="fpill ${catFilter===val?'active':''}" data-filter="${val}">${lbl}<span class="fcount">${cnt(val)}</span></button>`;
+  const filters=`<div class="filter-row">${pill('all','All')}${pill('Core','Core')}${pill('MPE','MPE')}${pill('Other','Other')}</div>`;
+  const search=`<input class="search" id="catSearch" placeholder="Search code or title…" value="${catSearch.replace(/"/g,'&quot;')}">`;
+  if(!list.length) return search+filters+emptyState('search','No matches','Try another code, title, or category.');
+  return search+filters+list.map(c=>{
+    const inPlan=plan.some(p=>p.code===c.code);
+    const cat=c.category||'';
+    const catSel=`<select class="catsel" data-setcat="${c.code}">
+      ${['','Core','MPE','Other'].map(v=>`<option value="${v}" ${v===cat?'selected':''}>${v||'Set category'}</option>`).join('')}
+    </select>`;
+    return `<div class="course-card"><div class="course-head">
+      <div class="swatch" style="background:${colorOf[c.code]}"></div>
+      <div class="course-meta">
+        <div class="course-code">${c.code}${c._imported?' <span class="tag">imported</span>':''}</div>
+        <div class="course-title">${c.title}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+        <button class="course-add" data-add="${c.code}" ${inPlan?'disabled style="opacity:.3"':''}>${inPlan?'✓':'+'}</button>
+      </div>
+    </div>
+    <div class="chosen-row" style="padding-top:0;gap:6px">
+      ${cat?`<span class="tag cat-${cat}">${cat}</span>`:''}
+      <span class="tag">${c.au} AU</span>
+      <span class="tag">${c.indexes.length} indexes</span>
+      ${c.exam?`<span class="tag exam-tag">Exam ${c.exam.split(' ')[0]}</span>`:`<span class="tag">No exam</span>`}
+      ${catSel}
+    </div></div>`;
+  }).join('');
+}
+
+function emptyState(icon,title,desc){
+  const svg = icon==='plus'
+    ? '<path d="M12 5v14M5 12h14"/>'
+    : '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/>';
+  return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${svg}</svg><div style="font-weight:600;color:var(--mut)">${title}</div><div style="margin-top:4px">${desc}</div></div>`;
+}
+
+function dayMinutes(){
+  const mins=[0,0,0,0,0], hasLec=[false,false,false,false,false];
+  for(const p of plan){ if(!p.chosen) continue; const ix=getIndex(p.code,p.chosen); if(!ix) continue;
+    for(const s of ix.sessions){ if(s.day<5){ if(counts(s)) mins[s.day]+=s.end-s.start; if(isLec(s)) hasLec[s.day]=true; } } }
+  return {mins,hasLec};
+}
+function fmtHrs(m){ return m? (Math.round(m/60*10)/10)+'h' : '0h'; }
+
+function renderGrid(){
+  const head=$('ttHead'); const body=$('ttBody');
+  const todayIdx=(new Date().getDay()+6)%7; // Mon=0
+  const {mins,hasLec}=dayMinutes();
+  head.innerHTML='<div class="axis-h"></div>'+DAYS.map((d,i)=>{
+    const free = mins[i]===0;
+    const lecOnly = free && hasLec[i];
+    const cls = free ? (lecOnly?'free lec':'free') : '';
+    const label = mins[i]>0 ? fmtHrs(mins[i]) : (lecOnly?'LEC only':'free');
+    return `<div class="day"><b>${d}</b><span class="dayhrs ${cls}">${label}</span></div>`;
+  }).join('');
+  const wk=$('wkHrs'); if(wk) wk.textContent=fmtHrs(mins.reduce((a,b)=>a+b,0))+'/wk';
+  // axis
+  let axis='<div class="axis">';
+  for(let m=GRID_START;m<GRID_END;m+=60) axis+=`<div class="hr"><span>${fmtMin(m)}</span></div>`;
+  axis+='</div>';
+  // day columns
+  let cols='';
+  for(let d=0;d<5;d++){
+    let hrs=''; for(let m=GRID_START;m<GRID_END;m+=60) hrs+='<div class="hr"></div>';
+    cols+=`<div class="daycol ${d===todayIdx?'today':''}" data-day="${d}">${hrs}</div>`;
+  }
+  body.innerHTML=axis+cols;
+  // place blocks
+  const conf=clashReport();
+  const clashSet=new Set();
+  conf.forEach(([a,b])=>{ clashSet.add(a.code+'|'+a.idx+'|'+a.day+'|'+a.start); clashSet.add(b.code+'|'+b.idx+'|'+b.day+'|'+b.start); });
+  const colEls=[...body.querySelectorAll('.daycol')];
+  for(const p of plan){
+    if(!p.chosen) continue; const ix=getIndex(p.code,p.chosen); if(!ix) continue;
+    const col=colorOf[p.code];
+    for(const s of ix.sessions){
+      const top=(s.start-GRID_START)*PX_PER_MIN;
+      const h=(s.end-s.start)*PX_PER_MIN;
+      const isClash=clashSet.has(p.code+'|'+p.chosen+'|'+s.day+'|'+s.start);
+      const wl=weekLabel(s.weeks);
+      const div=document.createElement('div');
+      div.className='block'+(isClash?' clash':'');
+      div.style.top=top+'px'; div.style.height=(h-3)+'px';
+      div.style.background=hexA(col,.22); div.style.borderColor=hexA(col,.55);
+      div.innerHTML=`${wl?`<span class="bk-wk" style="color:${col}">${wl}</span>`:''}
+        <div class="bk-code" style="color:${col}">${p.code}</div>
+        <div class="bk-type">${sessAbbr(s.type)} · ${p.chosen}</div>
+        <div class="bk-meta">${fmtMin(s.start)}–${fmtMin(s.end)} · ${s.venue}</div>`;
+      colEls[s.day].appendChild(div);
+    }
+  }
+}
+function hexA(hex,a){
+  const h=hex.replace('#',''); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function renderAll(){ renderHeaderStats(); renderSidebar(); renderClashBanner(); renderGrid(); save(); }
+
+/* ============================ Events ============================ */
+function wireSidebar(){
+  const body=$('sideBody');
+  body.querySelectorAll('[data-add]').forEach(b=>b.onclick=e=>{e.stopPropagation();addCourse(b.dataset.add);});
+  body.querySelectorAll('[data-remove]').forEach(b=>b.onclick=e=>{e.stopPropagation();removeCourse(b.dataset.remove);});
+  body.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const p=plan.find(x=>x.code===b.dataset.toggle);p.open=!p.open;renderSidebar();});
+  body.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const[code,idx]=b.dataset.pick.split('|');const p=plan.find(x=>x.code===code);p.chosen=idx;p.open=false;renderAll();});
+  body.querySelectorAll('[data-lock]').forEach(b=>b.onclick=e=>{e.stopPropagation();const p=plan.find(x=>x.code===b.dataset.lock);p.locked=!p.locked;renderAll();});
+  const cs=$('catSearch'); if(cs){ cs.oninput=()=>{catSearch=cs.value; const pos=cs.selectionStart; renderSidebar(); const n=$('catSearch'); if(n){n.focus();n.setSelectionRange(pos,pos);} }; }
+  body.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{catFilter=b.dataset.filter;renderSidebar();});
+  body.querySelectorAll('[data-setcat]').forEach(sel=>sel.onchange=()=>{const c=catalog.get(sel.dataset.setcat);if(c){c.category=sel.value;save();renderSidebar();}});
+}
+function addCourse(code){
+  if(plan.some(p=>p.code===code)) return;
+  const c=catalog.get(code);
+  // auto-pick first clash-free index if possible
+  const others=placedSessions(code);
+  let chosen=null;
+  for(const ix of c.indexes){ if(indexClashCodes(code,ix,others).length===0){chosen=ix.index;break;} }
+  if(!chosen && c.indexes.length) chosen=c.indexes[0].index;
+  plan.push({code,chosen,locked:false,open:false});
+  renderAll();
+}
+function removeCourse(code){ plan=plan.filter(p=>p.code!==code); renderAll(); }
+
+$('tabPlan').onclick=()=>{sideTab='plan';renderSidebar();};
+$('tabCatalog').onclick=()=>{sideTab='catalog';renderSidebar();};
+
+// mobile sidebar
+function openSide(o){ $('sidebar').classList.toggle('open',o); $('sideScrim').classList.toggle('open',o); }
+$('mtoggle').onclick=()=>openSide(!$('sidebar').classList.contains('open'));
+$('sideScrim').onclick=()=>openSide(false);
+
+// objective
+$('objSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  $('objSeg').querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); objective=b.dataset.obj; save();
+});
+
+// ignore-lectures toggle
+$('lecToggle').onclick=()=>{
+  ignoreLec=!ignoreLec;
+  $('lecToggle').classList.toggle('on',ignoreLec);
+  renderAll();
+};
+
+/* ----- Optimize modal ----- */
+$('optBtn').onclick=openOptimize;
+$('optClose').onclick=()=>$('optScrim').classList.remove('open');
+$('optScrim').onclick=e=>{if(e.target===$('optScrim'))$('optScrim').classList.remove('open');};
+function openOptimize(){
+  const active=plan.filter(p=>p.code);
+  const body=$('optBody');
+  if(!active.length){ body.innerHTML='<p>Add some courses to your plan first.</p>'; $('optScrim').classList.add('open'); return; }
+  body.innerHTML='<p>Searching combinations…</p>';
+  $('optScrim').classList.add('open');
+  setTimeout(()=>{
+    const sols=solve(1500);
+    if(!sols.length){
+      body.innerHTML=`<p><b style="color:var(--bad)">No fully clash-free combination exists</b> for these ${active.length} courses with the current locks. Try unlocking a course or removing one.</p>`;
+      return;
+    }
+    sols.sort((a,b)=>scoreSol(a)-scoreSol(b));
+    const top=sols.slice(0,6);
+    const objName={valid:'Any valid',days:'Fewest days on campus',compact:'Most compact days',latestart:'Latest morning starts',early:'Earliest finishes'}[objective];
+    const lecNote = ignoreLec ? ' <span class="mini">(lecture-only days count as free)</span>' : '';
+    body.innerHTML=`<p>${sols.length>=1500?'1500+':sols.length} clash-free combination${sols.length>1?'s':''} found · ranked by <b style="color:var(--ink)">${objName}</b>.${lecNote}</p>`+
+      top.map((m,i)=>{
+        const st=solStats(m);
+        return `<div class="sol-card">
+          <div class="sol-top"><span class="sol-badge">OPTION ${i+1}</span>
+            <div class="sol-stats">
+              <span><b>${st.days}</b> days</span>
+              <span><b>${Math.round(st.contact/60*10)/10}h</b> ${ignoreLec?'non-lec':'class'}</span>
+              <span>gaps <b>${Math.round(st.gap/60*10)/10}h</b></span>
+              <span>first <b>${fmtMin(st.earliest)}</b></span>
+              <span>last <b>${fmtMin(st.latest)}</b></span>
+            </div></div>
+          <div class="sol-idx">${Object.keys(m).sort().map(code=>`<span style="color:${colorOf[code]};border-color:${hexA(colorOf[code],.4)}">${code} ${m[code]}</span>`).join('')}</div>
+          <button class="btn primary" data-apply='${i}'>Apply this option</button>
+        </div>`;
+      }).join('');
+    body.querySelectorAll('[data-apply]').forEach(btn=>btn.onclick=()=>{
+      const m=top[+btn.dataset.apply];
+      plan.forEach(p=>{ if(m[p.code]) p.chosen=m[p.code]; });
+      $('optScrim').classList.remove('open'); renderAll();
+    });
+  },30);
+}
+
+/* ----- Import modal ----- */
+$('importBtn').onclick=()=>$('importScrim').classList.add('open');
+$('importClose').onclick=()=>$('importScrim').classList.remove('open');
+$('importScrim').onclick=e=>{if(e.target===$('importScrim'))$('importScrim').classList.remove('open');};
+
+function expandWeeks(remark){
+  if(!remark) return [1,2,3,4,5,6,7,8,9,10,11,12,13];
+  const m=remark.match(/Teaching Wk([0-9,\-]+)/); if(!m) return [1,2,3,4,5,6,7,8,9,10,11,12,13];
+  const out=new Set();
+  m[1].split(',').forEach(part=>{ if(part.includes('-')){const[a,b]=part.split('-').map(Number);for(let i=a;i<=b;i++)out.add(i);} else if(part.trim()) out.add(+part); });
+  return [...out].sort((a,b)=>a-b);
+}
+const DMAP={Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+function toMin(t){return +t.slice(0,2)*60 + +t.slice(2);}
+function parseCourseText(text, category){
+  const lines=text.split('\n').map(l=>l.trim());
+  let code=null,title=null,au=null,exam=null;
+  for(let i=0;i<lines.length;i++){
+    const full=lines[i].match(/\[\+\]\s+([A-Z]{2}\d{4}[A-Z]?)\s+(.+?)\s+(\d+)\s+AU/);
+    if(full && full[2].trim()){ code=full[1]; title=full[2].trim(); au=+full[3]; }
+    else{
+      const split=lines[i].match(/\[\+\]\s+([A-Z]{2}\d{4}[A-Z]?)\s+(\d+)\s+AU/);
+      if(split){
+        code=split[1]; au=+split[2];
+        const before=(lines[i-1]||'').trim(), after=(lines[i+1]||'').trim();
+        const labels=/^(Prerequisite|Mutually|Not available|Grading|Remark|Exam|Course|Class|Index|exclusive|\^Content|\d+\/\d+\/\d+)/;
+        const cont = (after && !labels.test(after)) ? after : '';
+        title = cont ? (before+' '+cont).trim() : before;
+      }
+    }
+    if(lines[i].startsWith('Exam Schedule:')){const v=lines[i].replace('Exam Schedule:','').trim();exam=/^not applicable/i.test(v)?null:v;}
+  }
+  if(!code) throw new Error('Could not find a course code (e.g. SC2103).');
+  const re=/^(?:(\d{4,6})\s+)?(Lec\/Studio|Tut|Lab|Sem|Studio)\s+(\S+)\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{4})to(\d{4})\s+(\S+)(?:\s+(.*))?$/;
+  const indexes={};const order=[];let cur=null;
+  for(const l of lines){
+    const m=l.match(re); if(!m) continue;
+    const[,idx,typ,grp,day,st,en,ven,remark]=m;
+    if(idx){cur=idx;if(!indexes[cur]){indexes[cur]=[];order.push(cur);}}
+    if(!cur) continue;
+    indexes[cur].push({type:typ,group:grp,day:DMAP[day],start:toMin(st),end:toMin(en),venue:ven,weeks:expandWeeks(remark||'')});
+  }
+  if(!order.length) throw new Error('No class schedule rows found.');
+  return {code,title:title||code,au:au||3,exam,category:category||'',_imported:true,indexes:order.map(i=>({index:i,sessions:indexes[i]}))};
+}
+// Strip an NTU "Content of Course" HTML page down to line-structured text,
+// so the same row parser works regardless of the exact markup.
+function htmlToText(html){
+  let s=html
+    .replace(/<\s*br\s*\/?>/gi,'\n')
+    .replace(/<\/(tr|p|li|h[1-6]|table|thead|tbody|div)>/gi,'\n')
+    .replace(/<\/(td|th)>/gi,' ')
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<[^>]+>/g,'')
+    .replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&')
+    .replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+    .replace(/&#43;|&plus;/gi,'+').replace(/&#x2b;/gi,'+');
+  return s.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n');
+}
+function addImported(c){
+  const existed = catalog.has(c.code);
+  // Preserve a manually-set category if re-importing and the new import left it blank
+  if(existed && !c.category){ const old=catalog.get(c.code); if(old && old.category) c.category=old.category; }
+  catalog.set(c.code,c); assignColor(c.code);
+  // If this module is in the plan, keep it but fix the chosen index if it no longer exists
+  const inPlan=plan.find(p=>p.code===c.code);
+  if(inPlan){
+    const stillValid = inPlan.chosen && c.indexes.some(ix=>ix.index===inPlan.chosen);
+    if(!stillValid){
+      const others=placedSessions(c.code);
+      let pick=null;
+      for(const ix of c.indexes){ if(indexClashCodes(c.code,ix,others).length===0){pick=ix.index;break;} }
+      inPlan.chosen = pick || (c.indexes[0]&&c.indexes[0].index) || null;
+      inPlan.locked = false;
+    }
+    renderAll();
+  } else {
+    renderHeaderStats();
+    if(sideTab==='catalog') renderSidebar();
+  }
+  return existed;
+}
+$('parsePaste').onclick=()=>{
+  const txt=$('pasteArea').value;
+  try{ const c=parseCourseText(txt, impCat); const upd=addImported(c);
+    $('pasteStatus').textContent=`${upd?'Updated':'Added'} ${c.code} (${c.indexes.length} indexes, ${impCat})`; $('pasteStatus').style.color='var(--good)';
+    $('pasteArea').value=''; save();
+  }catch(err){ $('pasteStatus').textContent=err.message; $('pasteStatus').style.color='var(--bad)'; }
+};
+// category selector in import modal
+$('impCatSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  $('impCatSeg').querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); impCat=b.dataset.cat;
+});
+
+let pdfjsReady=null;
+function loadPdfJs(){
+  if(pdfjsReady) return pdfjsReady;
+  pdfjsReady=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(window.pdfjsLib); };
+    s.onerror=()=>rej(new Error('Could not load PDF reader (offline?). Paste the text instead.'));
+    document.head.appendChild(s);
+  });
+  return pdfjsReady;
+}
+async function pdfToText(file){
+  const lib=await loadPdfJs();
+  const buf=await file.arrayBuffer();
+  const pdf=await lib.getDocument({data:buf}).promise;
+  let text='';
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p); const tc=await page.getTextContent();
+    // reconstruct lines by y position
+    const rows={};
+    tc.items.forEach(it=>{ const y=Math.round(it.transform[5]); (rows[y]=rows[y]||[]).push(it); });
+    Object.keys(rows).map(Number).sort((a,b)=>b-a).forEach(y=>{
+      const line=rows[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(' ').replace(/\s+/g,' ').trim();
+      if(line) text+=line+'\n';
+    });
+  }
+  return text;
+}
+$('pdfFile').onchange=async e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  const st=$('pdfStatus'); st.style.color='var(--mut)'; st.textContent='Reading…';
+  let added=0,updated=0,errs=[];
+  for(const f of files){
+    try{
+      const isHtml=/\.html?$/i.test(f.name)||f.type==='text/html';
+      const txt=isHtml ? htmlToText(await f.text()) : await pdfToText(f);
+      const c=parseCourseText(txt, impCat); const upd=addImported(c); upd?updated++:added++;
+    }
+    catch(err){ errs.push(f.name+': '+err.message); }
+  }
+  save();
+  const okAny=added||updated;
+  st.style.color=okAny?'var(--good)':'var(--bad)';
+  const parts=[];
+  if(added) parts.push(`added ${added}`);
+  if(updated) parts.push(`updated ${updated}`);
+  st.textContent=(okAny?`Done — ${parts.join(', ')} as ${impCat}. `:'')+(errs.length?errs.join(' | '):'');
+  e.target.value='';
+};
+
+/* ----- Export plan ----- */
+$('exportBtn').onclick=()=>{
+  const data={plan,objective,exported:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='ntu-timetable-plan.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ============================ Boot ============================ */
+load(); renderAll();
+// activate the saved objective button
+const ob=$('objSeg').querySelector(`[data-obj="${objective}"]`);
+if(ob){ $('objSeg').querySelectorAll('button').forEach(x=>x.classList.remove('active')); ob.classList.add('active'); }
+$('lecToggle').classList.toggle('on', ignoreLec);
+</script>
+</body>
+</html>
