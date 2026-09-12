@@ -1,8 +1,8 @@
 :root{
-  /* GMK Chaos Theory — default theme */
-  --bg:#1a0f2e; --panel:#201538; --panel2:#271c44; --line:#37255a;
-  --ink:#e5dff5; --mut:#9580b8; --mut2:#6a5585;
-  --accent:#f2c14e; --good:#5bbf7a; --warn:#f0a030; --bad:#e05555;
+  /* Original Dark — default theme */
+  --bg:#0E1217; --panel:#161C24; --panel2:#1C242E; --line:#28313D;
+  --ink:#E8EEF4; --mut:#8A97A6; --mut2:#5E6B79;
+  --accent:#4F9CF9; --good:#36D399; --warn:#F4A93C; --bad:#FF5D6C;
   --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
   --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --r:12px;
