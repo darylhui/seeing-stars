@@ -8,9 +8,10 @@
 <title>Index — NTU Timetable Planner</title>
 <style>
   :root{
-    --bg:#0E1217; --panel:#161C24; --panel2:#1C242E; --line:#28313D;
-    --ink:#E8EEF4; --mut:#8A97A6; --mut2:#5E6B79;
-    --accent:#4F9CF9; --good:#36D399; --warn:#F4A93C; --bad:#FF5D6C;
+    /* GMK Chaos Theory — default theme */
+    --bg:#1a0f2e; --panel:#201538; --panel2:#271c44; --line:#37255a;
+    --ink:#e5dff5; --mut:#9580b8; --mut2:#6a5585;
+    --accent:#f2c14e; --good:#5bbf7a; --warn:#f0a030; --bad:#e05555;
     --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
     --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     --r:12px;
@@ -288,6 +289,75 @@
     .stat{display:none}
     .timetable{min-width:480px}
   }
+
+  /* ---------- Stacked same-slot blocks ---------- */
+  .block-stack{position:absolute;left:3px;right:3px;border-radius:8px;overflow:hidden;
+    display:flex;flex-direction:column;
+    background:var(--panel2);border:1px solid rgba(255,255,255,.1);
+    box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:default;transition:.1s;z-index:2;}
+  .block-stack:hover{filter:brightness(1.08);z-index:4;}
+  .block-stack.clash{border-color:var(--bad);box-shadow:0 0 0 1.5px var(--bad),0 1px 6px rgba(255,93,108,.4);}
+  .stack-item{flex:1;min-height:0;overflow:hidden;box-sizing:border-box;
+    padding:3px 6px 3px 10px;border-left:3px solid transparent;
+    display:flex;flex-direction:column;justify-content:center;gap:1px;position:relative;}
+  .stack-item+.stack-item{border-top:1px solid rgba(255,255,255,.09);}
+  .stack-item.clash-item::after{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,93,108,.12) 5px,rgba(255,93,108,.12) 10px);
+    pointer-events:none;}
+  .stack-item .bk-row1{display:flex;align-items:baseline;gap:5px;min-width:0;}
+  .stack-item .bk-code{font-family:var(--mono);font-weight:700;font-size:11px;line-height:1.2;
+    flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .stack-item .bk-wk{font-family:var(--mono);font-size:7.5px;font-weight:700;flex:none;
+    padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.35);letter-spacing:.3px;}
+  .stack-item .bk-type{font-size:9.5px;opacity:.75;font-weight:500;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+
+  /* ---------- Swap Planner tab ---------- */
+  .swap-intro{font-size:12px;color:var(--mut);margin-bottom:12px;line-height:1.5}
+  .swap-list{display:flex;flex-direction:column;gap:7px;margin-bottom:4px}
+  .swap-row{display:flex;align-items:center;gap:8px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+  .swap-swatch{width:5px;align-self:stretch;border-radius:3px;flex:none}
+  .swap-meta{flex:1;min-width:0}
+  .swap-code{font-family:var(--mono);font-weight:700;font-size:12.5px;margin-bottom:4px}
+  .swap-sel{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    color:var(--ink);font-size:11.5px;padding:4px 6px;font-family:var(--mono)}
+  .swap-arrow{color:var(--mut2);font-size:13px;flex:none;padding:0 2px}
+  .swap-target{font-family:var(--mono);font-weight:700;font-size:12px;flex:none;
+    padding:3px 8px;border-radius:6px}
+  .swap-target.same{color:var(--mut);background:rgba(255,255,255,.05)}
+  .swap-target.diff{color:var(--accent);background:rgba(242,193,78,.12)}
+  .swap-target.unset{color:var(--mut2);background:rgba(255,255,255,.04);font-style:italic}
+  .swap-step{display:flex;align-items:flex-start;gap:10px;padding:10px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+  .swap-step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);
+    color:var(--bg);font-size:11px;font-weight:700;display:flex;align-items:center;
+    justify-content:center;flex:none;margin-top:1px}
+  .swap-step-code{font-family:var(--mono);font-weight:700;font-size:13px}
+  .swap-step-detail{font-size:11.5px;color:var(--mut);margin-top:2px;font-family:var(--mono)}
+  .swap-stuck{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.35);
+    border-radius:10px;padding:10px 12px;margin-top:8px}
+  .swap-stuck-title{font-weight:700;font-size:12px;color:var(--bad);margin-bottom:4px}
+  .swap-stuck-item{font-family:var(--mono);font-size:11.5px;color:var(--mut);margin-bottom:3px}
+  .swap-none{text-align:center;padding:16px 8px;color:var(--mut);font-size:12.5px}
+  .swap-ok{text-align:center;padding:16px 8px;color:var(--good);font-size:12.5px}
+
+  /* ---------- Theme picker ---------- */
+  .theme-wrap{position:relative;}
+  .theme-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:8px;z-index:200;
+    min-width:240px;box-shadow:0 8px 40px rgba(0,0,0,.55);display:none;}
+  .theme-menu.open{display:block;}
+  .theme-ttl{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--mut);
+    padding:4px 8px 8px;font-weight:700;}
+  .theme-opt{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:.1s;}
+  .theme-opt:hover{background:var(--panel2);}
+  .theme-opt.cur{background:rgba(128,128,128,.1);}
+  .theme-dots{display:flex;gap:3px;flex:none;}
+  .theme-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.15);}
+  .theme-oname{font-size:12.5px;font-weight:600;flex:1;}
+  .theme-check{font-size:14px;color:var(--accent);opacity:0;}
+  .theme-opt.cur .theme-check{opacity:1;}
 </style>
 </head>
 <body>
@@ -308,6 +378,15 @@
     <button class="icon-btn" id="helpBtn" title="How to use this app" aria-label="Help">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
     </button>
+    <div class="theme-wrap" id="themeWrap">
+      <button class="icon-btn" id="themeBtn" title="Change theme" aria-label="Change theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M18.36 5.64l-1.41 1.41"/></svg>
+      </button>
+      <div class="theme-menu" id="themeMenu">
+        <div class="theme-ttl">Theme</div>
+        <div id="themeList"></div>
+      </div>
+    </div>
     <button class="btn" id="importBtn" title="Import courses">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
       <span class="lbltext">Import</span>
@@ -327,6 +406,7 @@
       <div class="side-tabs">
         <button id="tabPlan" class="active">My Plan <span class="count" id="planCount">0</span></button>
         <button id="tabCatalog">Catalog <span class="count" id="catCount">0</span></button>
+        <button id="tabSwap">Swap</button>
         <button class="side-min" id="sideMin" title="Minimise panel" aria-label="Minimise">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
         </button>
@@ -344,6 +424,10 @@
         <button class="btn" id="exportBtn" title="Export selected indexes + best alternatives as CSV">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
           <span class="lbltext">Export CSV</span>
+        </button>
+        <button class="btn" id="icsBtn" title="Export as .ics for Google / Apple Calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="lbltext">Export ICS</span>
         </button>
       </div>
       <div class="clash-banner" id="clashBanner"></div>
@@ -440,6 +524,32 @@ Index Type Group Day Time Venue Remark
   </div>
 </div>
 
+<!-- ICS Export modal -->
+<div class="scrim" id="icsScrim">
+  <div class="modal">
+    <div class="modal-head"><h2>Export to Calendar (.ics)</h2><button class="x" id="icsClose">×</button></div>
+    <div class="modal-body">
+      <p>Creates an <b>.ics</b> file you can import into Google Calendar, Apple Calendar, or Outlook. Each session becomes an individual event for the exact weeks it runs.</p>
+      <div class="cons-grid" style="margin-bottom:10px">
+        <label class="cons-item">Semester start date — Monday of Week 1
+          <input type="date" id="icsSemStart" value="2026-08-10"
+            style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+                   color:var(--ink);padding:8px;font-size:13px;font-family:var(--mono);width:100%">
+        </label>
+      </div>
+      <div class="hint" style="margin-bottom:14px">
+        Events are exported with a <code>COLOR</code> property (RFC 7986) matching each module's colour.
+        Google Calendar maps imported colours to its nearest preset — for exact colours you may need to
+        set them manually, or import each module into a separate calendar.
+      </div>
+      <div class="file-row">
+        <button class="btn primary" id="icsExport">Download .ics</button>
+        <span class="mini" id="icsStatus"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 /* ============================ Data & State ============================ */
@@ -448,6 +558,57 @@ const DAYS = ['Mon','Tue','Wed','Thu','Fri'];
 const DAYFULL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const PALETTE = ['#4F9CF9','#36D399','#F4A93C','#C77DFF','#FF7A8A','#7BD389','#F49B6A','#6AB7FF','#E0C46C','#9D8DF1','#5FD0D6','#F7A1C4'];
 const GRID_START = 480, GRID_END = 1230, PX_PER_MIN = 56/60; // 8:00–20:30
+
+/* ===== Themes ===== */
+const THEMES = {
+  'chaos-theory': {
+    name:'GMK Chaos Theory',
+    '--bg':'#1a0f2e','--panel':'#201538','--panel2':'#271c44','--line':'#37255a',
+    '--ink':'#e5dff5','--mut':'#9580b8','--mut2':'#6a5585',
+    '--accent':'#f2c14e','--good':'#5bbf7a','--warn':'#f0a030','--bad':'#e05555'
+  },
+  'original': {
+    name:'Original Dark',
+    '--bg':'#0E1217','--panel':'#161C24','--panel2':'#1C242E','--line':'#28313D',
+    '--ink':'#E8EEF4','--mut':'#8A97A6','--mut2':'#5E6B79',
+    '--accent':'#4F9CF9','--good':'#36D399','--warn':'#F4A93C','--bad':'#FF5D6C'
+  },
+  'nord': {
+    name:'Nord',
+    '--bg':'#2e3440','--panel':'#3b4252','--panel2':'#434c5e','--line':'#4c566a',
+    '--ink':'#eceff4','--mut':'#9099a5','--mut2':'#636f7e',
+    '--accent':'#88c0d0','--good':'#a3be8c','--warn':'#ebcb8b','--bad':'#bf616a'
+  },
+  'dracula': {
+    name:'Dracula',
+    '--bg':'#282a36','--panel':'#313344','--panel2':'#3a3c50','--line':'#44475a',
+    '--ink':'#f8f8f2','--mut':'#8f92a6','--mut2':'#6272a4',
+    '--accent':'#bd93f9','--good':'#50fa7b','--warn':'#ffb86c','--bad':'#ff5555'
+  },
+  'catppuccin': {
+    name:'Catppuccin Mocha',
+    '--bg':'#1e1e2e','--panel':'#252535','--panel2':'#2a2a40','--line':'#363650',
+    '--ink':'#cdd6f4','--mut':'#9399b2','--mut2':'#6c7086',
+    '--accent':'#89b4fa','--good':'#a6e3a1','--warn':'#fab387','--bad':'#f38ba8'
+  },
+  'tokyo-night': {
+    name:'Tokyo Night',
+    '--bg':'#1a1b2e','--panel':'#1f2040','--panel2':'#24284a','--line':'#2e3154',
+    '--ink':'#c0caf5','--mut':'#7982c4','--mut2':'#565f89',
+    '--accent':'#7aa2f7','--good':'#9ece6a','--warn':'#e0af68','--bad':'#f7768e'
+  }
+};
+let currentTheme = 'chaos-theory';
+function applyTheme(key){
+  const t=THEMES[key]; if(!t) return;
+  const root=document.documentElement;
+  Object.entries(t).forEach(([k,v])=>{ if(k.startsWith('--')) root.style.setProperty(k,v); });
+  currentTheme=key;
+  // Persist alongside existing data
+  save();
+  // Update picker if already rendered
+  document.querySelectorAll('.theme-opt').forEach(el=>el.classList.toggle('cur',el.dataset.tid===key));
+}
 
 // catalog keyed by code; mutable (imports add here)
 const catalog = new Map();
@@ -465,11 +626,13 @@ function normalize(c){
     }))}))
   };
 }
-// Best-effort default; user can override per course. CC/ICC codes lean Core.
-function guessCat(code){ return /^(CC|CN|ET|HW|ML|HE|HY|HZ)/.test(code) ? 'Core' : ''; }
+// Best-effort default; user can override per course.
+// Common NTU Core Curriculum / foundation prefixes lean Core.
+function guessCat(code){ return /^(CC|CN|ET|HW|ML|HE|HY|HZ|GER|ICC)/.test(code) ? 'Core' : ''; }
 
 // plan: ordered list of {code, chosen:indexString|null, locked:bool, open:bool}
 let plan = [];
+let baseline = {}; // {code: school-assigned index string}
 let sideTab = 'plan';
 let catSearch = '';
 let catFilter = 'all';
@@ -508,7 +671,7 @@ function save(){
   try{
     const imported = [...catalog.values()].filter(c=>c._imported).map(c=>c);
     const cats={}; for(const c of catalog.values()) if(!c._imported && c.category) cats[c.code]=c.category;
-    localStorage.setItem(STORE, JSON.stringify({plan, imported, cats, ignoreLec, criteria, cons, sidebarMin, welcomeSeen}));
+    localStorage.setItem(STORE, JSON.stringify({plan, imported, cats, ignoreLec, criteria, cons, sidebarMin, welcomeSeen, theme:currentTheme, baseline}));
   }catch(e){/* sandbox: in-memory only */}
 }
 function load(){
@@ -523,6 +686,8 @@ function load(){
     if(d.cons) cons={minStart:d.cons.minStart||0, maxEnd:d.cons.maxEnd||1440, freeDays:d.cons.freeDays||[]};
     if(typeof d.sidebarMin==='boolean') sidebarMin=d.sidebarMin;
     welcomeSeen = !!d.welcomeSeen;
+    if(d.theme && THEMES[d.theme]) currentTheme=d.theme;
+    if(d.baseline && typeof d.baseline==='object') baseline=d.baseline;
   }catch(e){}
 }
 
@@ -690,8 +855,11 @@ function renderClashBanner(){
 function renderSidebar(){
   $('tabPlan').classList.toggle('active',sideTab==='plan');
   $('tabCatalog').classList.toggle('active',sideTab==='catalog');
+  $('tabSwap').classList.toggle('active',sideTab==='swap');
   const body=$('sideBody');
-  body.innerHTML = sideTab==='plan' ? planHTML() : catalogHTML();
+  if(sideTab==='plan') body.innerHTML=planHTML();
+  else if(sideTab==='catalog') body.innerHTML=catalogHTML();
+  else body.innerHTML=swapHTML();
   wireSidebar();
 }
 
@@ -746,6 +914,7 @@ function catalogHTML(){
   const q=catSearch.toLowerCase();
   let list=[...catalog.values()].filter(c=> !q || c.code.toLowerCase().includes(q)||c.title.toLowerCase().includes(q));
   if(catFilter!=='all') list=list.filter(c=>(c.category||'Other')===catFilter);
+  list.sort((a,b)=>a.code.localeCompare(b.code));
   const cnt=cat=> cat==='all'?catalog.size:[...catalog.values()].filter(c=>(c.category||'Other')===cat).length;
   const pill=(val,lbl)=>`<button class="fpill ${catFilter===val?'active':''}" data-filter="${val}">${lbl}<span class="fcount">${cnt(val)}</span></button>`;
   const filters=`<div class="filter-row">${pill('all','All')}${pill('Core','Core')}${pill('MPE','MPE')}${pill('Other','Other')}</div>`;
@@ -775,6 +944,115 @@ function catalogHTML(){
       ${catSel}
     </div></div>`;
   }).join('');
+}
+
+/* ============================ Swap Planner ============================ */
+function swapHTML(){
+  const active=plan.filter(p=>p.chosen);
+  if(!active.length) return emptyState('plus','No modules selected','Add modules and pick your target indexes in My Plan first.');
+  const rows=active.map(p=>{
+    const c=catalog.get(p.code); const col=colorOf[p.code];
+    const assigned=baseline[p.code]||'';
+    const target=p.chosen;
+    const same=assigned&&assigned===target;
+    const opts=c.indexes.map(ix=>`<option value="${ix.index}"${ix.index===assigned?' selected':''}>${ix.index}</option>`).join('');
+    let tClass=assigned?(same?'same':'diff'):'unset';
+    let tLabel=assigned?(same?target+'  ✓':target):'target: '+target;
+    return `<div class="swap-row">
+      <div class="swap-swatch" style="background:${col}"></div>
+      <div class="swap-meta">
+        <div class="swap-code">${p.code}</div>
+        <select class="swap-sel" data-swapcode="${p.code}">
+          <option value="">— not assigned —</option>
+          ${opts}
+        </select>
+      </div>
+      <div class="swap-arrow">→</div>
+      <div class="swap-target ${tClass}">${tLabel}</div>
+    </div>`;
+  }).join('');
+  return `<div>
+    <p class="swap-intro">Set each module's school-assigned index. The planner works out the order to swap them one by one without clashing.</p>
+    <div class="swap-list">${rows}</div>
+    <button class="btn primary" id="computeSwap" style="width:100%;margin-top:10px">Get swap order</button>
+    <div id="swapResult"></div>
+  </div>`;
+}
+
+function computeSwapOrder(){
+  const active=plan.filter(p=>p.chosen);
+  // modules that actually need a change
+  const changes=active.filter(p=>baseline[p.code]&&baseline[p.code]!==p.chosen)
+    .map(p=>({code:p.code,from:baseline[p.code],to:p.chosen}));
+  if(!changes.length) return {order:[],stuck:[],noDiff:true};
+
+  function idxClash(codeA,iA,codeB,iB){
+    const xa=getIndex(codeA,iA); const xb=getIndex(codeB,iB);
+    if(!xa||!xb) return false;
+    for(const sa of xa.sessions) for(const sb of xb.sessions) if(sessClash(sa,sb)) return true;
+    return false;
+  }
+
+  // current live state: baseline for changing modules, target for fixed ones
+  const cur={};
+  for(const p of active) cur[p.code]=baseline[p.code]||p.chosen;
+
+  const targetMap=Object.fromEntries(changes.map(c=>[c.code,c.to]));
+  const pending=new Set(changes.map(c=>c.code));
+  const order=[];
+  let progress=true;
+
+  while(pending.size>0&&progress){
+    progress=false;
+    for(const code of [...pending]){
+      let blocked=false;
+      for(const [other,idx] of Object.entries(cur)){
+        if(other===code) continue;
+        if(idxClash(code,targetMap[code],other,idx)){blocked=true;break;}
+      }
+      if(!blocked){
+        order.push({code,from:cur[code],to:targetMap[code]});
+        cur[code]=targetMap[code];
+        pending.delete(code);
+        progress=true;
+        break; // restart so updated state is used
+      }
+    }
+  }
+  const stuck=[...pending].map(code=>({code,from:cur[code],to:targetMap[code]}));
+  return{order,stuck,noDiff:false};
+}
+
+function renderSwapResult(){
+  const el=$('swapResult'); if(!el) return;
+  const {order,stuck,noDiff}=computeSwapOrder();
+  if(noDiff){el.innerHTML=`<div class="swap-ok">All modules are already at their target index.</div>`;return;}
+  let html='<div style="margin-top:14px">';
+  if(order.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Swap order</div>`;
+    order.forEach(({code,from,to},i)=>{
+      const col=colorOf[code]||'var(--accent)';
+      html+=`<div class="swap-step">
+        <div class="swap-step-num" style="background:${col};color:var(--bg)">${i+1}</div>
+        <div>
+          <div class="swap-step-code" style="color:${col}">${code}</div>
+          <div class="swap-step-detail">${from} → ${to}</div>
+        </div>
+      </div>`;
+    });
+  }
+  if(stuck.length){
+    const items=stuck.map(({code,from,to})=>`<div class="swap-stuck-item">${code}: ${from} → ${to}</div>`).join('');
+    html+=`<div class="swap-stuck">
+      <div class="swap-stuck-title">Deadlocked — swaps that block each other</div>
+      ${items}
+      <div class="swap-stuck-item" style="margin-top:6px;color:var(--mut)">
+        Drop one of these modules temporarily in STARS, swap the other(s), then re-add it.
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 function emptyState(icon,title,desc){
@@ -815,28 +1093,71 @@ function renderGrid(){
     cols+=`<div class="daycol ${d===todayIdx?'today':''}" data-day="${d}">${hrs}</div>`;
   }
   body.innerHTML=axis+cols;
-  // place blocks
+  // place blocks — group same-slot sessions and stack them vertically
   const conf=clashReport();
   const clashSet=new Set();
   conf.forEach(([a,b])=>{ clashSet.add(a.code+'|'+a.idx+'|'+a.day+'|'+a.start); clashSet.add(b.code+'|'+b.idx+'|'+b.day+'|'+b.start); });
   const colEls=[...body.querySelectorAll('.daycol')];
+
+  // 1. Collect every renderable session into a flat list
+  const allSegs=[];
   for(const p of plan){
     if(!p.chosen) continue; const ix=getIndex(p.code,p.chosen); if(!ix) continue;
-    const col=colorOf[p.code];
     for(const s of ix.sessions){
-      const top=(s.start-GRID_START)*PX_PER_MIN;
-      const h=(s.end-s.start)*PX_PER_MIN;
-      const isClash=clashSet.has(p.code+'|'+p.chosen+'|'+s.day+'|'+s.start);
+      allSegs.push({s, code:p.code, chosen:p.chosen, col:colorOf[p.code],
+        isClash:clashSet.has(p.code+'|'+p.chosen+'|'+s.day+'|'+s.start)});
+    }
+  }
+
+  // 2. Group by (day|start|end)
+  const slotMap=new Map();
+  for(const seg of allSegs){
+    const key=`${seg.s.day}|${seg.s.start}|${seg.s.end}`;
+    if(!slotMap.has(key)) slotMap.set(key,[]);
+    slotMap.get(key).push(seg);
+  }
+
+  // 3. Render each group
+  for(const [,group] of slotMap){
+    const {s:fs, isClash:fc}=group[0];
+    const top=(fs.start-GRID_START)*PX_PER_MIN;
+    const unitH=(fs.end-fs.start)*PX_PER_MIN;
+
+    if(group.length===1){
+      // Single block — original behaviour
+      const {s,code,chosen,col,isClash}=group[0];
       const wl=weekLabel(s.weeks);
       const div=document.createElement('div');
       div.className='block'+(isClash?' clash':'');
-      div.style.top=top+'px'; div.style.height=(h-3)+'px';
+      div.style.top=top+'px'; div.style.height=(unitH-3)+'px';
       div.style.background=hexA(col,.22); div.style.borderColor=hexA(col,.55);
       div.innerHTML=`${wl?`<span class="bk-wk" style="color:${col}">${wl}</span>`:''}
-        <div class="bk-code" style="color:${col}">${p.code}</div>
-        <div class="bk-type">${sessAbbr(s.type)} · ${p.chosen}</div>
-        <div class="bk-meta">${fmtMin(s.start)}–${fmtMin(s.end)} · ${s.venue}</div>`;
+        <div class="bk-code" style="color:${col}">${code}</div>
+        <div class="bk-type">${sessAbbr(s.type)} · ${chosen}${s.venue?' · '+s.venue:''}</div>`;
       colEls[s.day].appendChild(div);
+    } else {
+      // Multiple sessions share this slot — sort by earliest week, then stack
+      group.sort((a,b)=>Math.min(...a.s.weeks)-Math.min(...b.s.weeks));
+      const anyClash=group.some(g=>g.isClash);
+
+      const container=document.createElement('div');
+      container.className='block-stack'+(anyClash?' clash':'');
+      container.style.cssText=`top:${top}px;height:${unitH-3}px;`;
+
+      group.forEach(({s,code,chosen,col,isClash})=>{
+        const wl=weekLabel(s.weeks);
+        const sub=document.createElement('div');
+        sub.className='stack-item'+(isClash?' clash-item':'');
+        sub.style.borderLeftColor=col;
+        sub.innerHTML=`<div class="bk-row1">
+          <span class="bk-code" style="color:${col}">${code}</span>
+          ${wl?`<span class="bk-wk" style="color:${col};background:${hexA(col,.25)}">${wl}</span>`:''}
+        </div>
+        <div class="bk-type">${sessAbbr(s.type)} · ${chosen}${s.venue?' · '+s.venue:''}</div>`;
+        container.appendChild(sub);
+      });
+
+      colEls[fs.day].appendChild(container);
     }
   }
 }
@@ -858,6 +1179,16 @@ function wireSidebar(){
   const cs=$('catSearch'); if(cs){ cs.oninput=()=>{catSearch=cs.value; const pos=cs.selectionStart; renderSidebar(); const n=$('catSearch'); if(n){n.focus();n.setSelectionRange(pos,pos);} }; }
   body.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{catFilter=b.dataset.filter;renderSidebar();});
   body.querySelectorAll('[data-setcat]').forEach(sel=>sel.onchange=()=>{const c=catalog.get(sel.dataset.setcat);if(c){c.category=sel.value;save();renderSidebar();}});
+  // swap tab
+  body.querySelectorAll('.swap-sel').forEach(sel=>sel.onchange=()=>{
+    const code=sel.dataset.swapcode;
+    baseline[code]=sel.value||undefined;
+    if(!sel.value) delete baseline[code];
+    save(); renderSidebar();
+    // re-run result if already shown
+    if($('swapResult')&&$('swapResult').innerHTML) renderSwapResult();
+  });
+  const cb=$('computeSwap'); if(cb) cb.onclick=renderSwapResult;
 }
 function addCourse(code){
   if(plan.some(p=>p.code===code)) return;
@@ -874,6 +1205,7 @@ function removeCourse(code){ plan=plan.filter(p=>p.code!==code); renderAll(); }
 
 $('tabPlan').onclick=()=>{sideTab='plan';renderSidebar();};
 $('tabCatalog').onclick=()=>{sideTab='catalog';renderSidebar();};
+$('tabSwap').onclick=()=>{sideTab='swap';renderSidebar();};
 
 // mobile sidebar
 function openSide(o){ $('sidebar').classList.toggle('open',o); $('sideScrim').classList.toggle('open',o); }
@@ -984,10 +1316,10 @@ function parseCourseText(text, category){
   const lines=text.split('\n').map(l=>l.trim());
   let code=null,title=null,au=null,exam=null;
   for(let i=0;i<lines.length;i++){
-    const full=lines[i].match(/\[\+\]\s+([A-Z]{2}\d{4}[A-Z]?)\s+(.+?)\s+(\d+)\s+AU/);
+    const full=lines[i].match(/\[\+\]\s+([A-Z]{2,4}\d{4}[A-Z]?)\s+(.+?)\s+(\d+)\s+AU/);
     if(full && full[2].trim()){ code=full[1]; title=full[2].trim(); au=+full[3]; }
     else{
-      const split=lines[i].match(/\[\+\]\s+([A-Z]{2}\d{4}[A-Z]?)\s+(\d+)\s+AU/);
+      const split=lines[i].match(/\[\+\]\s+([A-Z]{2,4}\d{4}[A-Z]?)\s+(\d+)\s+AU/);
       if(split){
         code=split[1]; au=+split[2];
         const before=(lines[i-1]||'').trim(), after=(lines[i+1]||'').trim();
@@ -998,7 +1330,7 @@ function parseCourseText(text, category){
     }
     if(lines[i].startsWith('Exam Schedule:')){const v=lines[i].replace('Exam Schedule:','').trim();exam=/^not applicable/i.test(v)?null:v;}
   }
-  if(!code) throw new Error('Could not find a course code (e.g. SC2103).');
+  if(!code) throw new Error('Could not find a course code (e.g. SC2103, EG1005, MH1810).');
   const re=/^(?:(\d{4,6})\s+)?(Lec\/Studio|Tut|Lab|Sem|Studio)\s+(\S+)\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{4})to(\d{4})\s+(\S+)(?:\s+(.*))?$/;
   const indexes={};const order=[];let cur=null;
   for(const l of lines){
@@ -1157,8 +1489,123 @@ function applySidebarMin(){ $('app').classList.toggle('side-collapsed', sidebarM
 $('sideMin').onclick=()=>{ sidebarMin=true; applySidebarMin(); save(); };
 $('sideReopen').onclick=()=>{ sidebarMin=false; applySidebarMin(); save(); };
 
+/* ============================ ICS Export ============================ */
+$('icsBtn').onclick=()=>{
+  if(!plan.filter(p=>p.chosen).length){ alert('Add some modules and pick indexes first.'); return; }
+  $('icsScrim').classList.add('open');
+};
+$('icsClose').onclick=()=>$('icsScrim').classList.remove('open');
+$('icsScrim').onclick=e=>{if(e.target===$('icsScrim'))$('icsScrim').classList.remove('open');};
+
+function icsEsc(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+function icsFold(line){
+  let out='';
+  while(line.length>75){ out+=line.slice(0,75)+'\r\n '; line=line.slice(75); }
+  return out+line;
+}
+// Map our hex palette to the nearest Google Calendar event colour name
+const GC_COLORS={
+  '#4F9CF9':'Peacock','#36D399':'Sage','#F4A93C':'Banana','#C77DFF':'Grape',
+  '#FF7A8A':'Flamingo','#7BD389':'Sage','#F49B6A':'Tangerine','#6AB7FF':'Peacock',
+  '#E0C46C':'Banana','#9D8DF1':'Lavender','#5FD0D6':'Peacock','#F7A1C4':'Flamingo'
+};
+
+$('icsExport').onclick=()=>{
+  const semStr=$('icsSemStart').value;
+  if(!semStr){ $('icsStatus').textContent='Pick a start date first.'; $('icsStatus').style.color='var(--bad)'; return; }
+  const [yr,mo,dy]=semStr.split('-').map(Number);
+  const semStart=new Date(yr,mo-1,dy); // midnight local time = Monday of Week 1
+
+  function toICSDate(baseDate, dayOffset, minuteOfDay){
+    const d=new Date(baseDate);
+    d.setDate(d.getDate()+dayOffset);
+    const h=Math.floor(minuteOfDay/60), m=minuteOfDay%60;
+    const p=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}T${p(h)}${p(m)}00`;
+  }
+
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//NTU Timetable Planner//EN',
+    'CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:NTU Timetable',
+    'X-WR-TIMEZONE:Asia/Singapore',
+    'BEGIN:VTIMEZONE','TZID:Asia/Singapore',
+    'BEGIN:STANDARD','TZOFFSETFROM:+0800','TZOFFSETTO:+0800','TZNAME:SGT',
+    'DTSTART:19700101T000000Z','END:STANDARD','END:VTIMEZONE'
+  ];
+
+  let uid=0; let count=0;
+  for(const p of plan){
+    if(!p.chosen) continue;
+    const ix=getIndex(p.code,p.chosen); if(!ix) continue;
+    const c=catalog.get(p.code);
+    const hex=colorOf[p.code]||'#4F9CF9';
+    const hexUp=hex.toUpperCase();
+    for(const s of ix.sessions){
+      if(!counts(s)) continue; // respect "ignore lectures" toggle
+      for(const week of s.weeks){
+        uid++;
+        const dayOffset=(week-1)*7+s.day; // s.day: 0=Mon … 4=Fri
+        const dtstart=toICSDate(semStart,dayOffset,s.start);
+        const dtend  =toICSDate(semStart,dayOffset,s.end);
+        const summary=icsEsc(`${p.code} ${sessAbbr(s.type)} [${p.chosen}]`);
+        const desc=icsEsc(`${c.title}\nGroup: ${s.group}\nVenue: ${s.venue}\nWeek ${week}`);
+        const wl=weekLabel(s.weeks)||`W${week}`;
+        lines.push(
+          'BEGIN:VEVENT',
+          icsFold(`UID:ntu-${uid}-${Date.now()}@planner`),
+          icsFold(`DTSTART;TZID=Asia/Singapore:${dtstart}`),
+          icsFold(`DTEND;TZID=Asia/Singapore:${dtend}`),
+          icsFold(`SUMMARY:${summary} ${wl}`),
+          icsFold(`DESCRIPTION:${desc}`),
+          icsFold(`LOCATION:${icsEsc(s.venue)}`),
+          icsFold(`COLOR:${hexUp}`),
+          icsFold(`X-APPLE-CALENDAR-COLOR:${hexUp}`),
+          icsFold(`CATEGORIES:${icsEsc(p.code)}`),
+          'END:VEVENT'
+        );
+        count++;
+      }
+    }
+  }
+  lines.push('END:VCALENDAR');
+  const ics=lines.join('\r\n')+'\r\n';
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='ntu-timetable.ics'; a.click(); URL.revokeObjectURL(a.href);
+  $('icsStatus').textContent=`✓ ${count} events exported`; $('icsStatus').style.color='var(--good)';
+};
+
+/* ============================ Theme Picker ============================ */
+function buildThemePicker(){
+  const list=$('themeList'); if(!list) return;
+  list.innerHTML=Object.entries(THEMES).map(([key,t])=>`
+    <div class="theme-opt ${key===currentTheme?'cur':''}" data-tid="${key}">
+      <div class="theme-dots">
+        <div class="theme-dot" style="background:${t['--bg']}"></div>
+        <div class="theme-dot" style="background:${t['--accent']}"></div>
+        <div class="theme-dot" style="background:${t['--ink']}"></div>
+      </div>
+      <span class="theme-oname">${t.name}</span>
+      <span class="theme-check">✓</span>
+    </div>`).join('');
+  list.querySelectorAll('.theme-opt').forEach(el=>el.onclick=()=>{
+    applyTheme(el.dataset.tid);
+    list.querySelectorAll('.theme-opt').forEach(x=>x.classList.toggle('cur',x.dataset.tid===el.dataset.tid));
+    $('themeMenu').classList.remove('open');
+  });
+}
+$('themeBtn').onclick=e=>{
+  e.stopPropagation();
+  const menu=$('themeMenu');
+  if(!menu.classList.contains('open')) buildThemePicker();
+  menu.classList.toggle('open');
+};
+document.addEventListener('click',e=>{
+  if(!$('themeWrap').contains(e.target)) $('themeMenu').classList.remove('open');
+});
+
 /* ============================ Boot ============================ */
-load(); renderAll();
+load(); applyTheme(currentTheme); renderAll();
 $('lecToggle').classList.toggle('on', ignoreLec);
 applySidebarMin();
 if(!welcomeSeen) openWelcome();
