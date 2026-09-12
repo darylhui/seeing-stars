@@ -39,7 +39,7 @@ export const state = {
     {key:'efinish', enabled:false},
   ],
   cons: { minStart:0, maxEnd:1440, freeDays:[] }, // minutes; freeDays = array of 0..4
-  currentTheme: 'chaos-theory',
+  currentTheme: 'original',
   customThemes: {},          // key -> theme colors created by the user
   removedThemes: [],         // built-in theme keys the user has deleted
   welcomeSeen: false,

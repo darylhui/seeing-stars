@@ -17,7 +17,6 @@
     <div class="brand">
       <div>
         <h1>Seeing Stars</h1>
-        <div class="sub">NTU · AY2026 Sem 1</div>
       </div>
     </div>
     <div class="hspacer"></div>
@@ -51,9 +50,6 @@
 
   <main>
     <div class="sidebar-scrim" id="sideScrim"></div>
-    <button class="side-reopen" id="sideReopen" title="Show plan & catalog" aria-label="Show panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-    </button>
     <aside class="sidebar" id="sidebar">
       <div class="side-tabs">
         <button id="tabPlan" class="active">My Plan <span class="count" id="planCount">0</span></button>
@@ -68,6 +64,10 @@
 
     <section class="grid-wrap">
       <div class="grid-toolbar">
+        <button class="btn" id="sideReopen" title="Show plan & catalog" aria-label="Show panel" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+          <span class="lbltext">Show panel</span>
+        </button>
         <div class="hspacer" style="flex:1"></div>
         <button class="lectoggle on" id="lecToggle" title="When on, lecture-only days count as free and lectures are excluded from the hour totals">
           <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Ignore lectures

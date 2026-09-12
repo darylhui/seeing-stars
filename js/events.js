@@ -207,7 +207,10 @@ export function initEvents(){
   if(!state.welcomeSeen) openWelcome();
 
   /* ----- Sidebar minimise / reopen ----- */
-  function applySidebarMin(){ $('app').classList.toggle('side-collapsed', state.sidebarMin); }
+  function applySidebarMin(){
+    $('app').classList.toggle('side-collapsed', state.sidebarMin);
+    $('sideReopen').hidden = !state.sidebarMin;
+  }
   $('sideMin').onclick=()=>{ state.sidebarMin=true; applySidebarMin(); save(); };
   $('sideReopen').onclick=()=>{ state.sidebarMin=false; applySidebarMin(); save(); };
   applySidebarMin();
